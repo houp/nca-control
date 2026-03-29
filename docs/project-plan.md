@@ -80,6 +80,22 @@ The first implementation step does **not** train a model. It defines the determi
 - Experiment configs
 - Result logging and markdown reports
 
+## Maze Extension
+
+The next experiment variant adds three cell types:
+
+- empty cells: traversable
+- blocked cells: static walls
+- active cell: the controllable player
+
+### Maze Variant Plan
+
+1. Add deterministic wall-aware stepping and a maze generator.
+2. Extend state encoding to include wall information.
+3. Train the NCA on generated mazes so movement respects walls.
+4. Add rollout evaluation on mazes.
+5. Update the interactive visualizer to render empty, blocked, and active cells.
+
 ## Acceptance Criteria
 
 ### Functional

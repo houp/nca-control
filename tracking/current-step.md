@@ -2,27 +2,30 @@
 
 ## Step ID
 
-12
+13
 
 ## Title
 
-Broader rollout and size sweep
+Maze-aware dataset and training pipeline
 
 ## Scope
 
-- extend rollout testing across more grid sizes and training settings
-- identify limits where one-step exactness stops implying rollout stability
-- keep the process scripted and reproducible
+- add a wall channel to encoded model inputs
+- generate supervised training data from mazes
+- train and evaluate a maze-aware checkpoint
+- verify that learned one-step transitions respect walls
 
 ## Exit Criteria
 
-- at least one broader sweep is added beyond the current 20x20 success case
+- maze training data is generated correctly
+- training and evaluation work on maze layouts
+- automated tests cover the new data and inference path
 - findings are captured in markdown tracking
 - step is logged in `tracking/step-history.md`
 - local git commit is created
 
 ## Notes
 
-Step 11 hardened the browser visualizer against request-ordering bugs by serializing client requests and versioning backend session snapshots. The next useful step is still a broader sweep rather than a single-size spot check.
+Step 12 locked down the deterministic maze target. Step 13 teaches the model about walls by adding wall-aware inputs and maze-generated training data.
 
 Environment note: PyTorch MPS is available on this machine when checked outside the Codex sandbox. In-sandbox checks report `False`, so GPU-sensitive verification may require unsandboxed execution.

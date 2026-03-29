@@ -68,6 +68,11 @@ Step 8 now establishes:
 - a Tk-based interactive comparison app for reference vs learned control
 - tested non-UI keyboard/control helpers for local visual verification
 
+Step 12 now establishes:
+
+- deterministic wall-aware movement
+- a pure-Python maze generator for static blocked-cell layouts
+
 ## Commands
 
 Train a one-step model:

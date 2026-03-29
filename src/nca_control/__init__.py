@@ -17,6 +17,7 @@ from .evaluate import (
 from .grid import GridState, step_grid
 from .inference import load_checkpoint, predict_next_state
 from .interactive import action_from_keysym, prediction_to_grid_state
+from .maze import MazeLayout, generate_maze
 from .model import ControllableNCAModel
 from .simulation import parse_actions, rollout_states
 from .train import TrainConfig, train_one_step
@@ -26,6 +27,7 @@ __all__ = [
     "Action",
     "ControllableNCAModel",
     "GridState",
+    "MazeLayout",
     "TrainConfig",
     "action_from_keysym",
     "action_to_one_hot",
@@ -34,6 +36,7 @@ __all__ = [
     "encode_control_input",
     "evaluate_checkpoint",
     "evaluate_rollout_checkpoint",
+    "generate_maze",
     "load_checkpoint",
     "parse_actions",
     "prediction_to_grid_state",
