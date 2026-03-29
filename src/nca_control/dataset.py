@@ -34,18 +34,66 @@ class MazeTransitionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         value: float = 1.0,
     ) -> None:
         self.layouts = layouts
-        self.examples = examples
+        self.examples = torch.tensor(examples, dtype=torch.long)
         self.value = value
+        self.height = layouts[0].height
+        self.width = layouts[0].width
+        self.blocked_grids = torch.zeros((len(layouts), self.height, self.width), dtype=torch.float32)
+        self.action_grids = torch.zeros(
+            (len(ACTION_ORDER), len(ACTION_ORDER), self.height, self.width),
+            dtype=torch.float32,
+        )
+        for layout_index, layout in enumerate(layouts):
+            for row, col in layout.blocked:
+                self.blocked_grids[layout_index, row, col] = 1.0
+        for action_index in range(len(ACTION_ORDER)):
+            self.action_grids[action_index, action_index, :, :] = 1.0
 
     def __len__(self) -> int:
-        return len(self.examples)
+        return int(self.examples.shape[0])
 
     def __getitem__(self, index: int) -> tuple[torch.Tensor, torch.Tensor]:
-        layout_index, row, col, action_index = self.examples[index]
-        layout = self.layouts[layout_index]
-        state = layout.to_grid_state(row=row, col=col, value=self.value)
-        action = ACTION_ORDER[action_index]
-        return encode_control_input(state, action), state_to_tensor(step_grid(state, action))
+        inputs, targets = self.materialize_batch(torch.tensor([index], dtype=torch.long))
+        return inputs[0], targets[0]
+
+    def materialize_batch(
+        self,
+        indices: torch.Tensor,
+        device: str | torch.device = "cpu",
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        target_device = torch.device(device)
+        metadata = self.examples.index_select(0, indices.to("cpu")).to(target_device)
+        layout_indices = metadata[:, 0]
+        rows = metadata[:, 1]
+        cols = metadata[:, 2]
+        action_indices = metadata[:, 3]
+
+        batch_size = int(metadata.shape[0])
+        batch_index = torch.arange(batch_size, device=target_device)
+        blocked = self.blocked_grids.index_select(0, layout_indices.to("cpu")).to(target_device)
+        action_channels = self.action_grids.index_select(0, action_indices.to("cpu")).to(target_device)
+
+        state_channel = torch.zeros((batch_size, 1, self.height, self.width), dtype=torch.float32, device=target_device)
+        state_channel[batch_index, 0, rows, cols] = self.value
+        inputs = torch.cat([state_channel, blocked.unsqueeze(1), action_channels], dim=1)
+
+        proposed_rows = torch.where(
+            action_indices == ACTION_ORDER.index(Action.UP),
+            (rows - 1) % self.height,
+            torch.where(action_indices == ACTION_ORDER.index(Action.DOWN), (rows + 1) % self.height, rows),
+        )
+        proposed_cols = torch.where(
+            action_indices == ACTION_ORDER.index(Action.LEFT),
+            (cols - 1) % self.width,
+            torch.where(action_indices == ACTION_ORDER.index(Action.RIGHT), (cols + 1) % self.width, cols),
+        )
+        blocked_targets = blocked[batch_index, proposed_rows, proposed_cols] > 0.5
+        target_rows = torch.where(blocked_targets, rows, proposed_rows)
+        target_cols = torch.where(blocked_targets, cols, proposed_cols)
+
+        targets = torch.zeros((batch_size, 1, self.height, self.width), dtype=torch.float32, device=target_device)
+        targets[batch_index, 0, target_rows, target_cols] = self.value
+        return inputs, targets
 
 
 def state_to_tensor(state: GridState, device: str | torch.device = "cpu") -> torch.Tensor:

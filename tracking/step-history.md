@@ -16,4 +16,5 @@
 | 12 | Deterministic maze semantics and generator | Completed | `pytest: 35 passed`; focused grid/maze tests passed with `10` cases verifying walls, rendering, and maze connectivity | `step-12: add deterministic maze semantics` |
 | 13 | Maze-aware dataset and training pipeline | Completed | `pytest: 40 passed`; maze smoke training on MPS reached `final_loss=0.000071`; held-out one-step maze evaluation reported `argmax_accuracy=1.0`; maze rollout evaluation over `25600` steps found `0` failed sequences | `step-13: add maze-aware training pipeline` |
 | 14 | Maze-aware visualizer update | Completed | `pytest: 40 passed`; interactive tests passed; unsandboxed maze visualizer startup re-verified at `http://127.0.0.1:8767` | `step-14: update visualizer for maze walls` |
-| 15 | Broader maze sweep and reporting | In progress | Pending | Pending |
+| 15 | Training throughput optimization | Completed | `pytest: 40 passed`; short `30x30` MPS benchmark reported `2207.78 samples/s` and `28.336 s` total train time for `16` mazes over `2` epochs | `step-15: optimize training throughput` |
+| 16 | Broader maze sweep and reporting | In progress | Pending | Pending |

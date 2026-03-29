@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import json
+import time
+from collections.abc import Iterator
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
 import torch
-from torch.utils.data import DataLoader, Dataset, TensorDataset
+from torch.utils.data import Dataset, TensorDataset
 
 from .dataset import MazeTransitionDataset, TransitionDataset, build_maze_transition_dataset, build_transition_dataset
 from .device import resolve_device
@@ -42,16 +44,20 @@ def train_one_step(config: TrainConfig, output_dir: str | Path) -> dict[str, obj
         hidden_channels=config.hidden_channels,
         cell_value_max=config.value,
     ).to(device)
-    dataloader = _make_dataloader(dataset, config.batch_size)
+    if device.type in {"mps", "cuda"}:
+        model = model.to(memory_format=torch.channels_last)
     optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
 
     losses: list[float] = []
+    epoch_times_sec: list[float] = []
+    training_start = time.perf_counter()
     for _ in range(config.epochs):
+        epoch_start = time.perf_counter()
         epoch_loss = 0.0
         sample_count = 0
-        for batch_inputs, batch_targets in dataloader:
-            batch_inputs = batch_inputs.to(device)
-            batch_targets = batch_targets.to(device)
+        for batch_inputs, batch_targets in _iterate_training_batches(dataset, config.batch_size, device, config.seed + len(losses)):
+            if device.type in {"mps", "cuda"}:
+                batch_inputs = batch_inputs.contiguous(memory_format=torch.channels_last)
 
             optimizer.zero_grad(set_to_none=True)
             logits = model.forward_logits(batch_inputs)
@@ -65,6 +71,9 @@ def train_one_step(config: TrainConfig, output_dir: str | Path) -> dict[str, obj
             sample_count += batch_size
 
         losses.append(epoch_loss / sample_count)
+        epoch_times_sec.append(time.perf_counter() - epoch_start)
+
+    total_train_time_sec = time.perf_counter() - training_start
 
     checkpoint_path = output_path / "checkpoint.pt"
     metrics_path = output_path / "metrics.json"
@@ -81,6 +90,9 @@ def train_one_step(config: TrainConfig, output_dir: str | Path) -> dict[str, obj
         "device": str(device),
         "final_loss": losses[-1],
         "loss_history": losses,
+        "epoch_times_sec": epoch_times_sec,
+        "total_train_time_sec": total_train_time_sec,
+        "samples_per_second": (num_samples * config.epochs) / total_train_time_sec,
         "num_samples": num_samples,
     }
     metrics_path.write_text(json.dumps(metrics, indent=2) + "\n", encoding="utf-8")
@@ -114,8 +126,29 @@ def _build_training_dataset(config: TrainConfig) -> tuple[Dataset[tuple[torch.Te
     return dataset, int(tensor_data.inputs.shape[0]), int(tensor_data.inputs.shape[1])
 
 
-def _make_dataloader(
+def _iterate_training_batches(
     dataset: Dataset[tuple[torch.Tensor, torch.Tensor]],
     batch_size: int,
-) -> DataLoader[tuple[torch.Tensor, torch.Tensor]]:
-    return DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    device: torch.device,
+    seed: int,
+) -> Iterator[tuple[torch.Tensor, torch.Tensor]]:
+    if isinstance(dataset, MazeTransitionDataset):
+        generator = torch.Generator(device="cpu")
+        generator.manual_seed(seed)
+        permutation = torch.randperm(len(dataset), generator=generator)
+        for start in range(0, len(dataset), batch_size):
+            batch_indices = permutation[start : start + batch_size]
+            yield dataset.materialize_batch(batch_indices, device=device)
+        return
+
+    if isinstance(dataset, TensorDataset):
+        inputs, targets = dataset.tensors
+        generator = torch.Generator(device="cpu")
+        generator.manual_seed(seed)
+        permutation = torch.randperm(inputs.shape[0], generator=generator)
+        for start in range(0, inputs.shape[0], batch_size):
+            batch_indices = permutation[start : start + batch_size]
+            yield inputs[batch_indices].to(device), targets[batch_indices].to(device)
+        return
+
+    raise TypeError(f"unsupported dataset type: {type(dataset)!r}")

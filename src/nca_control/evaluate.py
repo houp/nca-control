@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import torch
-from torch.utils.data import DataLoader
 
 from .dataset import ACTION_ORDER
 from .dataset import MazeTransitionDataset, TransitionDataset, build_maze_transition_dataset, build_transition_dataset
@@ -202,11 +201,13 @@ def _predict_dataset(
             predictions = model(dataset.inputs.to(device)).cpu()
         return predictions, dataset.targets.cpu()
 
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
     prediction_batches: list[torch.Tensor] = []
     target_batches: list[torch.Tensor] = []
+    index_range = torch.arange(len(dataset), dtype=torch.long)
     with torch.no_grad():
-        for batch_inputs, batch_targets in dataloader:
-            prediction_batches.append(model(batch_inputs.to(device)).cpu())
+        for start in range(0, len(dataset), batch_size):
+            batch_indices = index_range[start : start + batch_size]
+            batch_inputs, batch_targets = dataset.materialize_batch(batch_indices, device=device)
+            prediction_batches.append(model(batch_inputs).cpu())
             target_batches.append(batch_targets.cpu())
     return torch.cat(prediction_batches, dim=0), torch.cat(target_batches, dim=0)

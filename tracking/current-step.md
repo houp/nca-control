@@ -2,7 +2,7 @@
 
 ## Step ID
 
-15
+16
 
 ## Title
 
@@ -24,6 +24,6 @@ Broader maze sweep and reporting
 
 ## Notes
 
-Step 14 updated the browser visualizer so it now preserves and renders walls correctly. The maze-aware visualizer starts successfully against `runs/maze9_smoke/checkpoint.pt` and the full automated suite remains green.
+Step 15 optimized the training path by removing Python per-sample maze tensor construction from the hot loop. Maze batches are now materialized vectorially, the model uses channels-last on GPU devices, and training reports throughput metrics. A short `30x30` benchmark on MPS (`16` mazes, `2` epochs, `batch_size=256`, `hidden_channels=64`) completed at about `2207.78 samples/s` over `28.336 s`.
 
 Environment note: PyTorch MPS is available on this machine when checked outside the Codex sandbox. In-sandbox checks report `False`, so GPU-sensitive verification may require unsandboxed execution.

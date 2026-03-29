@@ -51,6 +51,8 @@ def main(
     typer.echo(f"metrics={result['metrics_path']}")
     typer.echo(f"device={metrics['device']}")
     typer.echo(f"final_loss={metrics['final_loss']:.6f}")
+    typer.echo(f"samples_per_second={metrics['samples_per_second']:.2f}")
+    typer.echo(f"total_train_time_sec={metrics['total_train_time_sec']:.3f}")
 
 
 if __name__ == "__main__":
