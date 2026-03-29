@@ -60,3 +60,27 @@ Verification output:
 - moderate widths (`4`, `8`, `16`) learn much of the task but still make systematic one-cell directional mistakes.
 - increasing the hidden update kernel from `1` to `3` did not recover exactness at low width.
 - under this sweep, `32` hidden channels is the first architecture that works exactly while remaining substantially smaller than the previous `64`-channel reference model.
+
+## MPS Replication Check
+
+The selected `32/3/1` architecture was retrained from scratch on MPS with three seeds using the same training recipe:
+
+- task: `maze_exit`
+- grid: `9x9`
+- mazes: `16`
+- epochs: `150`
+- batch size: `64`
+
+Results:
+
+| Seed | Device | Final Loss | One-Step Full-State Accuracy | `30x30` Rollout | `50x50` Rollout | Result |
+| --- | --- | --- | --- | --- | --- | --- |
+| 0 | `mps` | `0.027663` | `1.0` | `1.0` | `1.0` | Exact |
+| 1 | `mps` | `0.029040` | `0.998837` | `1.0` | `1.0` | Near-exact |
+| 2 | `mps` | `0.031843` | `1.0` | `1.0` | `1.0` | Exact |
+
+Interpretation:
+
+- the architecture is robust enough to preserve exact rollout behavior across larger grids in all three tested runs
+- the current training recipe is **not yet perfectly reproducible** at the stricter one-step exactness level, because one of the three fresh MPS runs missed one-step perfection by a small margin
+- the next sensible step is to harden the recipe, likely by increasing training budget or adding checkpoint selection criteria, while keeping the same `32/3/1` architecture
