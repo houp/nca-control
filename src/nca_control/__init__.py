@@ -9,6 +9,7 @@ from .dataset import (
     state_to_tensor,
 )
 from .device import resolve_device
+from .evaluate import decode_argmax_positions, evaluate_checkpoint
 from .grid import GridState, step_grid
 from .inference import load_checkpoint, predict_next_state
 from .model import ControllableNCAModel
@@ -23,7 +24,9 @@ __all__ = [
     "TrainConfig",
     "action_to_one_hot",
     "build_transition_dataset",
+    "decode_argmax_positions",
     "encode_control_input",
+    "evaluate_checkpoint",
     "load_checkpoint",
     "parse_actions",
     "predict_next_state",

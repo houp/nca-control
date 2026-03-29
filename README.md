@@ -52,6 +52,11 @@ Step 5 now establishes:
 - a checkpointed one-step supervised training script
 - a checkpoint-loading inference script
 
+Step 6 now establishes:
+
+- full-dataset checkpoint evaluation
+- quantitative evidence that the initial model/loss is not yet exact enough
+
 Training quality improvements and interactive visualization follow after that.
 
 ## Planned Stack
