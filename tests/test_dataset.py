@@ -6,6 +6,8 @@ from nca_control.actions import Action
 from nca_control.dataset import (
     ACTION_ORDER,
     action_to_one_hot,
+    blocked_to_tensor,
+    build_maze_transition_dataset,
     build_transition_dataset,
     encode_control_input,
     state_to_tensor,
@@ -37,16 +39,26 @@ def test_action_to_one_hot_respects_declared_action_order() -> None:
 def test_encode_control_input_broadcasts_action_channels() -> None:
     encoded = encode_control_input(GridState(height=2, width=3, row=1, col=2), Action.UP)
 
-    assert encoded.shape == (6, 2, 3)
+    assert encoded.shape == (7, 2, 3)
     assert encoded[0, 1, 2].item() == 1.0
-    assert torch.all(encoded[2] == 1.0)
     assert torch.count_nonzero(encoded[1]) == 0
+    assert torch.all(encoded[3] == 1.0)
+    assert torch.count_nonzero(encoded[2]) == 0
+
+
+def test_blocked_to_tensor_encodes_wall_cells() -> None:
+    blocked = blocked_to_tensor(GridState(height=3, width=4, row=1, col=2, blocked=frozenset({(0, 0), (2, 3)})))
+
+    assert blocked.shape == (1, 3, 4)
+    assert blocked[0, 0, 0].item() == 1.0
+    assert blocked[0, 2, 3].item() == 1.0
+    assert torch.count_nonzero(blocked) == 2
 
 
 def test_build_transition_dataset_has_expected_shape() -> None:
     dataset = build_transition_dataset(height=2, width=3)
 
-    assert dataset.inputs.shape == (2 * 3 * 5, 6, 2, 3)
+    assert dataset.inputs.shape == (2 * 3 * 5, 7, 2, 3)
     assert dataset.targets.shape == (2 * 3 * 5, 1, 2, 3)
     assert dataset.action_indices.shape == (2 * 3 * 5,)
     assert dataset.positions.shape == (2 * 3 * 5, 2)
@@ -67,3 +79,13 @@ def test_build_transition_dataset_targets_match_reference_rule() -> None:
     assert _active_position(dataset.targets[right_index]) == (0, 1)
     assert _active_position(dataset.targets[up_index]) == (1, 0)
     assert _active_position(dataset.targets[none_index]) == (1, 1)
+
+
+def test_build_maze_transition_dataset_respects_walls() -> None:
+    dataset = build_maze_transition_dataset(height=9, width=9, num_mazes=1, seed=0)
+
+    sample_inputs, sample_target = dataset[0]
+
+    assert sample_inputs.shape[0] == 7
+    assert sample_target.shape == (1, 9, 9)
+    assert torch.isfinite(sample_inputs).all()

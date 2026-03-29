@@ -73,6 +73,12 @@ Step 12 now establishes:
 - deterministic wall-aware movement
 - a pure-Python maze generator for static blocked-cell layouts
 
+Step 13 now establishes:
+
+- wall-aware model inputs
+- maze-generated supervised training data
+- an exact maze-control checkpoint on generated mazes
+
 ## Commands
 
 Train a one-step model:

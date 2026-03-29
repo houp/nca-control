@@ -38,6 +38,29 @@ def test_train_one_step_creates_checkpoint_and_metrics(tmp_path) -> None:
     assert saved_metrics["num_samples"] == 45
 
 
+def test_train_one_step_creates_maze_checkpoint_and_metrics(tmp_path) -> None:
+    result = train_one_step(
+        TrainConfig(
+            task="maze",
+            height=9,
+            width=9,
+            num_mazes=2,
+            eval_num_mazes=1,
+            epochs=1,
+            batch_size=16,
+            hidden_channels=8,
+            device="cpu",
+        ),
+        output_dir=tmp_path,
+    )
+
+    metrics = result["metrics"]
+
+    assert result["checkpoint_path"].exists()
+    assert metrics["device"] == "cpu"
+    assert metrics["num_samples"] > 0
+
+
 def test_checkpoint_round_trip_supports_prediction(tmp_path) -> None:
     result = train_one_step(
         TrainConfig(height=2, width=2, epochs=1, batch_size=4, hidden_channels=8, device="cpu"),

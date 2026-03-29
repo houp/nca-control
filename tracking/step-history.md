@@ -14,4 +14,5 @@
 | 10 | Multi-step rollout evaluation | Completed | `pytest: 29 passed`; `scripts/evaluate_rollout.py` on the `20x20` checkpoint reported `256000` rollout steps checked with `0` failed sequences | `step-10: add rollout evaluation tooling` |
 | 11 | Browser visualizer ordering hardening | Completed | `pytest: 30 passed`; interactive session versioning tests added; unsandboxed visualizer startup re-verified at `http://127.0.0.1:8766` | `step-11: fix browser visualizer request ordering` |
 | 12 | Deterministic maze semantics and generator | Completed | `pytest: 35 passed`; focused grid/maze tests passed with `10` cases verifying walls, rendering, and maze connectivity | `step-12: add deterministic maze semantics` |
-| 13 | Maze-aware dataset and training pipeline | In progress | Pending | Pending |
+| 13 | Maze-aware dataset and training pipeline | Completed | `pytest: 40 passed`; maze smoke training on MPS reached `final_loss=0.000071`; held-out one-step maze evaluation reported `argmax_accuracy=1.0`; maze rollout evaluation over `25600` steps found `0` failed sequences | `step-13: add maze-aware training pipeline` |
+| 14 | Maze-aware visualizer update | In progress | Pending | Pending |

@@ -18,7 +18,9 @@ def load_checkpoint(
     resolved_device = resolve_device(device)
     payload = torch.load(checkpoint_path, map_location=resolved_device, weights_only=False)
     config = dict(payload["config"])
+    input_channels = int(payload["model_state_dict"]["perception.weight"].shape[1])
     model = ControllableNCAModel(
+        input_channels=input_channels,
         hidden_channels=int(config["hidden_channels"]),
         cell_value_max=float(config["value"]),
     ).to(resolved_device)

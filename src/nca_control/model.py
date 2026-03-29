@@ -9,7 +9,7 @@ class ControllableNCAModel(nn.Module):
 
     def __init__(
         self,
-        input_channels: int = 6,
+        input_channels: int = 7,
         state_channels: int = 1,
         hidden_channels: int = 32,
         cell_value_max: float = 1.0,

@@ -5,18 +5,23 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 import torch
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader, Dataset, TensorDataset
 
-from .dataset import TransitionDataset, build_transition_dataset
+from .dataset import MazeTransitionDataset, TransitionDataset, build_maze_transition_dataset, build_transition_dataset
 from .device import resolve_device
 from .model import ControllableNCAModel
 
 
 @dataclass(frozen=True, slots=True)
 class TrainConfig:
+    task: str = "plain"
     height: int = 6
     width: int = 6
     value: float = 1.0
+    num_mazes: int = 32
+    maze_seed: int = 0
+    eval_num_mazes: int = 8
+    eval_seed_offset: int = 10_000
     hidden_channels: int = 32
     batch_size: int = 32
     epochs: int = 100
@@ -31,13 +36,9 @@ def train_one_step(config: TrainConfig, output_dir: str | Path) -> dict[str, obj
     output_path.mkdir(parents=True, exist_ok=True)
 
     device = resolve_device(config.device)
-    dataset = build_transition_dataset(
-        height=config.height,
-        width=config.width,
-        value=config.value,
-        device="cpu",
-    )
+    dataset, num_samples, input_channels = _build_training_dataset(config)
     model = ControllableNCAModel(
+        input_channels=input_channels,
         hidden_channels=config.hidden_channels,
         cell_value_max=config.value,
     ).to(device)
@@ -70,7 +71,7 @@ def train_one_step(config: TrainConfig, output_dir: str | Path) -> dict[str, obj
     torch.save(
         {
             "model_state_dict": model.state_dict(),
-            "config": asdict(config),
+            "config": {**asdict(config), "input_channels": input_channels},
             "final_loss": losses[-1],
             "loss_history": losses,
         },
@@ -80,7 +81,7 @@ def train_one_step(config: TrainConfig, output_dir: str | Path) -> dict[str, obj
         "device": str(device),
         "final_loss": losses[-1],
         "loss_history": losses,
-        "num_samples": int(dataset.inputs.shape[0]),
+        "num_samples": num_samples,
     }
     metrics_path.write_text(json.dumps(metrics, indent=2) + "\n", encoding="utf-8")
     return {
@@ -90,6 +91,31 @@ def train_one_step(config: TrainConfig, output_dir: str | Path) -> dict[str, obj
     }
 
 
-def _make_dataloader(dataset: TransitionDataset, batch_size: int) -> DataLoader[tuple[torch.Tensor, torch.Tensor]]:
-    tensor_dataset = TensorDataset(dataset.inputs, dataset.targets)
-    return DataLoader(tensor_dataset, batch_size=batch_size, shuffle=True)
+def _build_training_dataset(config: TrainConfig) -> tuple[Dataset[tuple[torch.Tensor, torch.Tensor]], int, int]:
+    if config.task == "maze":
+        maze_dataset = build_maze_transition_dataset(
+            height=config.height,
+            width=config.width,
+            num_mazes=config.num_mazes,
+            seed=config.maze_seed,
+            value=config.value,
+        )
+        sample_input, _sample_target = maze_dataset[0]
+        return maze_dataset, len(maze_dataset), int(sample_input.shape[0])
+    if config.task != "plain":
+        raise ValueError(f"unsupported task: {config.task}")
+    tensor_data = build_transition_dataset(
+        height=config.height,
+        width=config.width,
+        value=config.value,
+        device="cpu",
+    )
+    dataset = TensorDataset(tensor_data.inputs, tensor_data.targets)
+    return dataset, int(tensor_data.inputs.shape[0]), int(tensor_data.inputs.shape[1])
+
+
+def _make_dataloader(
+    dataset: Dataset[tuple[torch.Tensor, torch.Tensor]],
+    batch_size: int,
+) -> DataLoader[tuple[torch.Tensor, torch.Tensor]]:
+    return DataLoader(dataset, batch_size=batch_size, shuffle=True)
