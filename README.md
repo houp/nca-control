@@ -37,7 +37,12 @@ Step 2 now establishes:
 - deterministic trajectory generation
 - a text-mode simulation CLI for scripted control sequences
 
-Dataset generation, learned NCA training, and interactive visualization follow after that.
+Step 3 now establishes:
+
+- torch-based supervised transition dataset generation
+- explicit control-channel encoding for future NCA training
+
+Learned NCA training and interactive visualization follow after that.
 
 ## Planned Stack
 
