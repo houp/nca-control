@@ -2,7 +2,7 @@
 
 ## Step ID
 
-11
+12
 
 ## Title
 
@@ -23,6 +23,6 @@ Broader rollout and size sweep
 
 ## Notes
 
-Step 10 added scripted rollout evaluation and validated the current refined `20x20` checkpoint over `256` random sequences of `1000` steps each with `0` failures. The next useful step is a broader sweep rather than a single-size spot check.
+Step 11 hardened the browser visualizer against request-ordering bugs by serializing client requests and versioning backend session snapshots. The next useful step is still a broader sweep rather than a single-size spot check.
 
 Environment note: PyTorch MPS is available on this machine when checked outside the Codex sandbox. In-sandbox checks report `False`, so GPU-sensitive verification may require unsandboxed execution.

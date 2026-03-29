@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from http import HTTPStatus
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -135,6 +135,8 @@ HTML_PAGE = """<!doctype html>
     const statusEl = document.getElementById("status");
     const refGrid = document.getElementById("reference-grid");
     const modelGrid = document.getElementById("model-grid");
+    let latestVersion = -1;
+    let requestQueue = Promise.resolve();
 
     function drawGrid(target, state, mismatch) {
       target.style.gridTemplateColumns = `repeat(${state.width}, minmax(0, 1fr))`;
@@ -155,16 +157,28 @@ HTML_PAGE = """<!doctype html>
     }
 
     function render(data) {
+      if (typeof data.version === "number" && data.version < latestVersion) {
+        return;
+      }
+      latestVersion = typeof data.version === "number" ? data.version : latestVersion;
       drawGrid(refGrid, data.reference, false);
       drawGrid(modelGrid, data.model, !data.match);
       statusEl.textContent =
-        `last_action=${data.last_action} | reference=(${data.reference.row}, ${data.reference.col}) | model=(${data.model.row}, ${data.model.col}) | match=${data.match ? "yes" : "no"}`;
+        `version=${data.version} | last_action=${data.last_action} | reference=(${data.reference.row}, ${data.reference.col}) | model=(${data.model.row}, ${data.model.col}) | match=${data.match ? "yes" : "no"}`;
     }
 
-    async function fetchState(path, options = {}) {
-      const response = await fetch(path, options);
-      const payload = await response.json();
-      render(payload);
+    function enqueueRequest(path, options = {}) {
+      requestQueue = requestQueue
+        .catch(() => {})
+        .then(async () => {
+          const response = await fetch(path, options);
+          const payload = await response.json();
+          render(payload);
+        })
+        .catch((error) => {
+          statusEl.textContent = `request_failed=${error}`;
+        });
+      return requestQueue;
     }
 
     const keyToAction = {
@@ -178,7 +192,7 @@ HTML_PAGE = """<!doctype html>
     window.addEventListener("keydown", async (event) => {
       if (event.key === "r" || event.key === "R") {
         event.preventDefault();
-        await fetchState("/reset", { method: "POST" });
+        await enqueueRequest("/reset", { method: "POST" });
         return;
       }
       const action = keyToAction[event.key];
@@ -186,10 +200,10 @@ HTML_PAGE = """<!doctype html>
         return;
       }
       event.preventDefault();
-      await fetchState(`/step?action=${action}`, { method: "POST" });
+      await enqueueRequest(`/step?action=${action}`, { method: "POST" });
     });
 
-    fetchState("/state");
+    enqueueRequest("/state");
   </script>
 </body>
 </html>
@@ -264,7 +278,7 @@ def main(
         initial_state=GridState(height=height, width=width, row=row, col=col, value=value),
         device=device,
     )
-    server = ThreadingHTTPServer((host, port), make_handler(session))
+    server = HTTPServer((host, port), make_handler(session))
     typer.echo(f"Visualizer running at http://{host}:{port}")
     typer.echo("Open that URL in your browser. Use arrow keys, Space, and R in the page.")
     try:

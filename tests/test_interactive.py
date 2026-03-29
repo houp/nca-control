@@ -51,6 +51,7 @@ def test_interactive_session_reset_restores_initial_state(tmp_path) -> None:
 
     payload = session.reset()
 
+    assert payload["version"] == 1
     assert payload["last_action"] == "none"
     assert payload["reference"]["row"] == 1
     assert payload["model"]["col"] == 1
@@ -72,9 +73,33 @@ def test_interactive_session_apply_action_updates_reference_and_model(monkeypatc
 
     payload = session.apply_action(Action.RIGHT)
 
+    assert payload["version"] == 1
     assert payload["last_action"] == "right"
     assert payload["reference"]["row"] == 0
     assert payload["reference"]["col"] == 1
     assert payload["model"]["row"] == 0
     assert payload["model"]["col"] == 1
     assert payload["match"] is True
+
+
+def test_interactive_session_version_increments_monotonically(monkeypatch, tmp_path) -> None:
+    checkpoint_path = tmp_path / "dummy.pt"
+    checkpoint_path.write_text("unused", encoding="utf-8")
+    session = InteractiveCompareSession(
+        checkpoint_path=str(checkpoint_path),
+        initial_state=GridState(height=3, width=3, row=0, col=0, value=1.0),
+        device="cpu",
+    )
+
+    def fake_predict_next_state(*args, **kwargs):  # type: ignore[no-untyped-def]
+        return torch.tensor([[[0.0, 1.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]], dtype=torch.float32)
+
+    monkeypatch.setattr("nca_control.interactive.predict_next_state", fake_predict_next_state)
+
+    initial = session.snapshot()
+    after_step = session.apply_action(Action.RIGHT)
+    after_reset = session.reset()
+
+    assert initial["version"] == 0
+    assert after_step["version"] == 1
+    assert after_reset["version"] == 2

@@ -12,4 +12,5 @@
 | 8 | Interactive visual verification app | Completed | `pytest: 25 passed`; `python -m py_compile scripts/interactive_compare.py` passed; GUI launch still requires manual macOS verification outside the headless environment | `step-8: add interactive comparison app` |
 | 9 | Browser-based visualizer compatibility fix | Completed | `pytest: 28 passed`; `python -m py_compile scripts/interactive_compare.py` passed; unsandboxed startup served `http://127.0.0.1:8765` successfully | `step-9: replace tk visualizer with browser app` |
 | 10 | Multi-step rollout evaluation | Completed | `pytest: 29 passed`; `scripts/evaluate_rollout.py` on the `20x20` checkpoint reported `256000` rollout steps checked with `0` failed sequences | `step-10: add rollout evaluation tooling` |
-| 11 | Broader rollout and size sweep | In progress | Pending | Pending |
+| 11 | Browser visualizer ordering hardening | Completed | `pytest: 30 passed`; interactive session versioning tests added; unsandboxed visualizer startup re-verified at `http://127.0.0.1:8766` | `step-11: fix browser visualizer request ordering` |
+| 12 | Broader rollout and size sweep | In progress | Pending | Pending |

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from threading import RLock
 
 import torch
 
@@ -42,39 +43,52 @@ class InteractiveCompareSession:
     reference_state: GridState = field(init=False)
     model_state: GridState = field(init=False)
     last_action: Action = field(init=False)
+    version: int = field(init=False)
+    _lock: RLock = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
+        self._lock = RLock()
         self.reference_state = self.initial_state
         self.model_state = self.initial_state
         self.last_action = Action.NONE
+        self.version = 0
 
     def reset(self) -> dict[str, object]:
-        self.reference_state = self.initial_state
-        self.model_state = self.initial_state
-        self.last_action = Action.NONE
-        return self.snapshot()
+        with self._lock:
+            self.reference_state = self.initial_state
+            self.model_state = self.initial_state
+            self.last_action = Action.NONE
+            self.version += 1
+            return self._snapshot_unlocked()
 
     def apply_action(self, action: Action) -> dict[str, object]:
         from .grid import step_grid
 
-        self.last_action = action
-        self.reference_state = step_grid(self.reference_state, action)
-        prediction = predict_next_state(
-            self.checkpoint_path,
-            self.model_state,
-            action,
-            device=self.device,
-            hard_decode=True,
-        )
-        self.model_state = prediction_to_grid_state(prediction, value=self.model_state.value)
-        return self.snapshot()
+        with self._lock:
+            self.last_action = action
+            self.reference_state = step_grid(self.reference_state, action)
+            prediction = predict_next_state(
+                self.checkpoint_path,
+                self.model_state,
+                action,
+                device=self.device,
+                hard_decode=True,
+            )
+            self.model_state = prediction_to_grid_state(prediction, value=self.model_state.value)
+            self.version += 1
+            return self._snapshot_unlocked()
 
     def snapshot(self) -> dict[str, object]:
+        with self._lock:
+            return self._snapshot_unlocked()
+
+    def _snapshot_unlocked(self) -> dict[str, object]:
         mismatch = (self.reference_state.row, self.reference_state.col) != (
             self.model_state.row,
             self.model_state.col,
         )
         return {
+            "version": self.version,
             "last_action": self.last_action.value,
             "reference": serialize_grid_state(self.reference_state),
             "model": serialize_grid_state(self.model_state),
