@@ -112,6 +112,11 @@ Step 25 now establishes:
 - torch-to-MLX parity checks plus native MLX training/evaluation scripts
 - a measured three-way runtime comparison across PyTorch CPU, PyTorch MPS, and MLX
 
+Step 27 now establishes:
+
+- a stronger MLX-based revisit of the minimal-model problem
+- a new smallest exact and reproducible `maze_exit` model at `hidden_channels=12`, `perception_kernel_size=3`, `update_kernel_size=1`
+
 ## Commands
 
 Train a one-step model:
@@ -143,7 +148,7 @@ Train an exit-aware maze model:
 Train the currently selected minimal exact model:
 
 ```bash
-.venv/bin/python scripts/train_one_step.py --task maze_exit --output-dir runs/sweep_h32_p3_u1 --height 9 --width 9 --num-mazes 16 --eval-num-mazes 4 --epochs 150 --batch-size 64 --hidden-channels 32 --perception-kernel-size 3 --update-kernel-size 1
+.venv/bin/python scripts/train_mlx_one_step.py --task maze_exit --output-dir runs/mlx_h12_p3_u1 --height 9 --width 9 --num-mazes 64 --eval-num-mazes 8 --epochs 300 --batch-size 128 --hidden-channels 12 --perception-kernel-size 3 --update-kernel-size 1
 ```
 
 Train the same recipe with MLX:
