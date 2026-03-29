@@ -95,6 +95,11 @@ Step 18 now establishes:
 - one-step and rollout evaluation for the learned exit-aware checkpoint
 - exact decoded gameplay semantics on the verified smoke checkpoint
 
+Step 22 now establishes:
+
+- a fresh minimal-architecture sweep after clearing `runs/`
+- a verified smaller exact model at `hidden_channels=32`, `perception_kernel_size=3`, `update_kernel_size=1`
+
 ## Commands
 
 Train a one-step model:
@@ -113,6 +118,12 @@ Train an exit-aware maze model:
 
 ```bash
 .venv/bin/python scripts/train_one_step.py --task maze_exit --output-dir runs/maze-exit9 --height 9 --width 9 --num-mazes 32 --eval-num-mazes 8 --epochs 50
+```
+
+Train the currently selected minimal exact model:
+
+```bash
+.venv/bin/python scripts/train_one_step.py --task maze_exit --output-dir runs/sweep_h32_p3_u1 --height 9 --width 9 --num-mazes 16 --eval-num-mazes 4 --epochs 150 --batch-size 64 --hidden-channels 32 --perception-kernel-size 3 --update-kernel-size 1
 ```
 
 Evaluate a checkpoint:
