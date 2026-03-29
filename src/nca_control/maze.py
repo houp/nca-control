@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from collections import deque
 from random import Random
 
 from .grid import GridState
@@ -11,6 +12,8 @@ class MazeLayout:
     height: int
     width: int
     blocked: frozenset[tuple[int, int]]
+    start_cell: tuple[int, int]
+    exit_cell: tuple[int, int]
 
     def __post_init__(self) -> None:
         if self.height < 3 or self.width < 3:
@@ -18,6 +21,12 @@ class MazeLayout:
         for row, col in self.blocked:
             if not (0 <= row < self.height and 0 <= col < self.width):
                 raise ValueError("blocked cells must stay within maze bounds")
+        for cell in [self.start_cell, self.exit_cell]:
+            row, col = cell
+            if not (0 <= row < self.height and 0 <= col < self.width):
+                raise ValueError("maze endpoints must stay within bounds")
+            if cell in self.blocked:
+                raise ValueError("maze endpoints must be open cells")
 
     def open_cells(self) -> list[tuple[int, int]]:
         return [
@@ -27,14 +36,16 @@ class MazeLayout:
             if (row, col) not in self.blocked
         ]
 
-    def to_grid_state(self, row: int, col: int, value: float = 1.0) -> GridState:
+    def to_grid_state(self, row: int | None = None, col: int | None = None, value: float = 1.0) -> GridState:
+        active_row, active_col = (self.start_cell if row is None or col is None else (row, col))
         return GridState(
             height=self.height,
             width=self.width,
-            row=row,
-            col=col,
+            row=active_row,
+            col=active_col,
             value=value,
             blocked=self.blocked,
+            exit_cell=self.exit_cell,
         )
 
 
@@ -78,4 +89,41 @@ def generate_maze(height: int, width: int, seed: int = 0) -> MazeLayout:
         visited.add((next_row, next_col))
         stack.append((next_row, next_col))
 
-    return MazeLayout(height=height, width=width, blocked=frozenset(blocked))
+    start_cell = (1, 1)
+    exit_cell = _farthest_open_cell(height, width, frozenset(blocked), start_cell)
+    return MazeLayout(
+        height=height,
+        width=width,
+        blocked=frozenset(blocked),
+        start_cell=start_cell,
+        exit_cell=exit_cell,
+    )
+
+
+def _farthest_open_cell(
+    height: int,
+    width: int,
+    blocked: frozenset[tuple[int, int]],
+    start_cell: tuple[int, int],
+) -> tuple[int, int]:
+    visited = {start_cell}
+    queue = deque([(start_cell, 0)])
+    farthest_cell = start_cell
+    farthest_distance = 0
+
+    while queue:
+        (row, col), distance = queue.popleft()
+        if distance > farthest_distance:
+            farthest_cell = (row, col)
+            farthest_distance = distance
+        for next_row, next_col in [(row - 1, col), (row + 1, col), (row, col - 1), (row, col + 1)]:
+            if not (0 <= next_row < height and 0 <= next_col < width):
+                continue
+            if (next_row, next_col) in blocked:
+                continue
+            if (next_row, next_col) in visited:
+                continue
+            visited.add((next_row, next_col))
+            queue.append(((next_row, next_col), distance + 1))
+
+    return farthest_cell

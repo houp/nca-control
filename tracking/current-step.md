@@ -2,28 +2,29 @@
 
 ## Step ID
 
-16
+17
 
 ## Title
 
-Broader maze sweep and reporting
+Maze exit-aware training and evaluation
 
 ## Scope
 
-- run maze experiments on larger grids and larger maze sets
-- compare one-step and rollout behavior across scales
-- capture concise findings in markdown
+- extend dataset encoding with exit-state information
+- train the NCA to stop control at the exit and model gradual end-state spread
+- verify one-step and rollout behavior on exit-aware mazes
 
 ## Exit Criteria
 
-- at least one broader maze sweep is recorded
-- findings are captured in markdown tracking
+- maze-aware training data includes exit semantics
+- trained checkpoints respect wall and exit behavior
+- automated tests cover exit-aware data and evaluation
 - findings are captured in markdown tracking
 - step is logged in `tracking/step-history.md`
 - local git commit is created
 
 ## Notes
 
-Step 15 optimized the training path by removing Python per-sample maze tensor construction from the hot loop. Maze batches are now materialized vectorially, the model uses channels-last on GPU devices, and training reports throughput metrics. A short `30x30` benchmark on MPS (`16` mazes, `2` epochs, `batch_size=256`, `hidden_channels=64`) completed at about `2207.78 samples/s` over `28.336 s`.
+Step 16 added deterministic exit-cell semantics and updated the maze generator to produce explicit start and exit cells with a guaranteed solution path between them. The next slice teaches the NCA about the exit state.
 
 Environment note: PyTorch MPS is available on this machine when checked outside the Codex sandbox. In-sandbox checks report `False`, so GPU-sensitive verification may require unsandboxed execution.

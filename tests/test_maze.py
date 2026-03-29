@@ -65,9 +65,17 @@ def test_maze_generator_creates_connected_open_region() -> None:
 
 def test_maze_layout_converts_to_grid_state() -> None:
     layout = generate_maze(height=9, width=9, seed=1)
-    row, col = layout.open_cells()[0]
-
-    state = layout.to_grid_state(row=row, col=col, value=2.0)
+    state = layout.to_grid_state(value=2.0)
 
     assert state.blocked == layout.blocked
     assert state.value == 2.0
+    assert (state.row, state.col) == layout.start_cell
+    assert state.exit_cell == layout.exit_cell
+
+
+def test_maze_generator_sets_distinct_open_start_and_exit() -> None:
+    layout = generate_maze(height=11, width=11, seed=5)
+
+    assert layout.start_cell not in layout.blocked
+    assert layout.exit_cell not in layout.blocked
+    assert layout.start_cell != layout.exit_cell

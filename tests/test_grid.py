@@ -51,3 +51,26 @@ def test_zero_value_is_rejected() -> None:
         assert "non-zero" in str(exc)
     else:
         raise AssertionError("expected ValueError for zero-valued active cell")
+
+
+def test_reaching_exit_terminates_game_and_shows_exit_state() -> None:
+    state = GridState(height=3, width=4, row=1, col=1, exit_cell=(1, 2))
+
+    next_state = step_grid(state, Action.RIGHT)
+
+    assert next_state.terminated is True
+    assert next_state.exit_fill == frozenset({(1, 2)})
+    assert next_state.as_text().splitlines() == [
+        "....",
+        "..E.",
+        "....",
+    ]
+
+
+def test_terminated_state_ignores_input_and_expands_exit_fill() -> None:
+    state = GridState(height=3, width=3, row=1, col=1, exit_cell=(1, 1), terminated=True)
+
+    next_state = step_grid(state, Action.LEFT)
+
+    assert next_state.terminated is True
+    assert next_state.exit_fill == frozenset({(1, 1), (0, 1), (2, 1), (1, 0), (1, 2)})
