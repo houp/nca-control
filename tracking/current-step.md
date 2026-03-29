@@ -2,7 +2,7 @@
 
 ## Step ID
 
-9
+10
 
 ## Title
 
@@ -24,6 +24,6 @@ Multi-step rollout evaluation
 
 ## Notes
 
-Step 8 added a side-by-side interactive visualizer. In this headless environment I verified the non-UI control logic and script compilation, but the actual Tk window still requires a manual launch on macOS for final visual confirmation.
+Step 9 replaced the original Tk-based visualizer with a browser-based local server because the active Python 3.13 environment on this machine does not provide `_tkinter`. The replacement visualizer now starts successfully when run unsandboxed and serves a local page for manual verification.
 
 Environment note: PyTorch MPS is available on this machine when checked outside the Codex sandbox. In-sandbox checks report `False`, so GPU-sensitive verification may require unsandboxed execution.

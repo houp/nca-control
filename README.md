@@ -94,6 +94,8 @@ Launch the interactive visual comparison app:
 .venv/bin/python scripts/interactive_compare.py --checkpoint runs/demo/checkpoint.pt --height 6 --width 6
 ```
 
+Then open `http://127.0.0.1:8000` in your browser.
+
 ## Planned Stack
 
 - `uv` for environment and dependency management

@@ -1,149 +1,250 @@
 from __future__ import annotations
 
-import tkinter as tk
+import json
+from http import HTTPStatus
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 import typer
 
 from nca_control.actions import Action
-from nca_control.grid import GridState, step_grid
-from nca_control.inference import predict_next_state
-from nca_control.interactive import action_from_keysym, prediction_to_grid_state
+from nca_control.grid import GridState
+from nca_control.interactive import InteractiveCompareSession
 
 app = typer.Typer(add_completion=False)
 
+HTML_PAGE = """<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Controllable NCA Visualizer</title>
+  <style>
+    :root {
+      --bg: #f6f1e7;
+      --panel: #fffaf1;
+      --grid: #d5c7b2;
+      --active: #0c8a47;
+      --mismatch: #bf1e2e;
+      --text: #1f2933;
+    }
+    body {
+      margin: 0;
+      font-family: Georgia, "Iowan Old Style", serif;
+      background: radial-gradient(circle at top, #fffaf1, var(--bg));
+      color: var(--text);
+    }
+    .wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .hero {
+      margin-bottom: 18px;
+    }
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: 32px;
+    }
+    .hero p {
+      margin: 0;
+      line-height: 1.45;
+    }
+    .status {
+      margin: 16px 0 20px;
+      padding: 14px 16px;
+      border: 1px solid #d9ccb8;
+      background: var(--panel);
+      border-radius: 14px;
+    }
+    .boards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 18px;
+    }
+    .board {
+      background: var(--panel);
+      border: 1px solid #dfd3c1;
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: 0 14px 30px rgba(120, 89, 41, 0.08);
+    }
+    .board h2 {
+      margin: 0 0 12px;
+      font-size: 22px;
+    }
+    .grid {
+      display: grid;
+      gap: 4px;
+    }
+    .cell {
+      width: 100%;
+      aspect-ratio: 1;
+      border: 1px solid var(--grid);
+      background: #f3ece1;
+      border-radius: 6px;
+    }
+    .cell.active {
+      background: var(--active);
+    }
+    .cell.mismatch {
+      outline: 3px solid var(--mismatch);
+      outline-offset: -2px;
+    }
+    .help {
+      margin-top: 20px;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    kbd {
+      border: 1px solid #c6b79f;
+      border-bottom-width: 3px;
+      border-radius: 6px;
+      padding: 1px 7px;
+      background: #fff;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h1>Controllable NCA Visualizer</h1>
+      <p>Arrow keys move. Space is a no-op. R resets. The right panel is highlighted red if the learned model diverges from the deterministic reference.</p>
+    </div>
+    <div id="status" class="status">Loading...</div>
+    <div class="boards">
+      <section class="board">
+        <h2>Reference</h2>
+        <div id="reference-grid" class="grid"></div>
+      </section>
+      <section class="board">
+        <h2>Model</h2>
+        <div id="model-grid" class="grid"></div>
+      </section>
+    </div>
+    <div class="help">
+      Controls:
+      <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> move,
+      <kbd>Space</kbd> no-op,
+      <kbd>R</kbd> reset.
+    </div>
+  </div>
+  <script>
+    const statusEl = document.getElementById("status");
+    const refGrid = document.getElementById("reference-grid");
+    const modelGrid = document.getElementById("model-grid");
 
-class InteractiveCompareApp:
-    def __init__(
-        self,
-        root: tk.Tk,
-        checkpoint: Path,
-        initial_state: GridState,
-        *,
-        cell_size: int,
-        device: str,
-    ) -> None:
-        self.root = root
-        self.checkpoint = checkpoint
-        self.reference_state = initial_state
-        self.model_state = initial_state
-        self.initial_state = initial_state
-        self.cell_size = cell_size
-        self.device = device
-        self.last_action = Action.NONE
+    function drawGrid(target, state, mismatch) {
+      target.style.gridTemplateColumns = `repeat(${state.width}, minmax(0, 1fr))`;
+      target.innerHTML = "";
+      for (let row = 0; row < state.height; row += 1) {
+        for (let col = 0; col < state.width; col += 1) {
+          const cell = document.createElement("div");
+          cell.className = "cell";
+          if (row === state.row && col === state.col) {
+            cell.classList.add("active");
+            if (mismatch) {
+              cell.classList.add("mismatch");
+            }
+          }
+          target.appendChild(cell);
+        }
+      }
+    }
 
-        self.status_var = tk.StringVar()
-        self.reference_canvas = tk.Canvas(
-            root,
-            width=initial_state.width * cell_size,
-            height=initial_state.height * cell_size,
-            highlightthickness=0,
-        )
-        self.model_canvas = tk.Canvas(
-            root,
-            width=initial_state.width * cell_size,
-            height=initial_state.height * cell_size,
-            highlightthickness=0,
-        )
-        self._build_layout()
-        self._render()
-        self.root.bind("<KeyPress>", self._on_keypress)
+    function render(data) {
+      drawGrid(refGrid, data.reference, false);
+      drawGrid(modelGrid, data.model, !data.match);
+      statusEl.textContent =
+        `last_action=${data.last_action} | reference=(${data.reference.row}, ${data.reference.col}) | model=(${data.model.row}, ${data.model.col}) | match=${data.match ? "yes" : "no"}`;
+    }
 
-    def _build_layout(self) -> None:
-        self.root.title("Controllable NCA: Reference vs Model")
-        container = tk.Frame(self.root, padx=16, pady=16)
-        container.pack(fill="both", expand=True)
+    async function fetchState(path, options = {}) {
+      const response = await fetch(path, options);
+      const payload = await response.json();
+      render(payload);
+    }
 
-        instructions = tk.Label(
-            container,
-            text="Arrows move. Space = no-op. R resets. Esc quits.",
-            anchor="w",
-        )
-        instructions.pack(fill="x")
+    const keyToAction = {
+      ArrowUp: "up",
+      ArrowDown: "down",
+      ArrowLeft: "left",
+      ArrowRight: "right",
+      " ": "none",
+    };
 
-        canvas_row = tk.Frame(container, pady=12)
-        canvas_row.pack()
+    window.addEventListener("keydown", async (event) => {
+      if (event.key === "r" || event.key === "R") {
+        event.preventDefault();
+        await fetchState("/reset", { method: "POST" });
+        return;
+      }
+      const action = keyToAction[event.key];
+      if (!action) {
+        return;
+      }
+      event.preventDefault();
+      await fetchState(`/step?action=${action}`, { method: "POST" });
+    });
 
-        ref_frame = tk.Frame(canvas_row)
-        ref_frame.pack(side="left", padx=8)
-        tk.Label(ref_frame, text="Reference").pack()
-        self.reference_canvas.pack(in_=ref_frame)
+    fetchState("/state");
+  </script>
+</body>
+</html>
+"""
 
-        model_frame = tk.Frame(canvas_row)
-        model_frame.pack(side="left", padx=8)
-        tk.Label(model_frame, text="Model").pack()
-        self.model_canvas.pack(in_=model_frame)
 
-        status_label = tk.Label(container, textvariable=self.status_var, anchor="w", justify="left")
-        status_label.pack(fill="x")
+def make_handler(session: InteractiveCompareSession) -> type[BaseHTTPRequestHandler]:
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self) -> None:  # noqa: N802
+            parsed = urlparse(self.path)
+            if parsed.path == "/":
+                self._send_html(HTML_PAGE)
+                return
+            if parsed.path == "/state":
+                self._send_json(session.snapshot())
+                return
+            self.send_error(HTTPStatus.NOT_FOUND)
 
-    def _on_keypress(self, event: tk.Event[tk.Misc]) -> None:
-        if event.keysym.lower() == "escape":
-            self.root.destroy()
+        def do_POST(self) -> None:  # noqa: N802
+            parsed = urlparse(self.path)
+            if parsed.path == "/reset":
+                self._send_json(session.reset())
+                return
+            if parsed.path == "/step":
+                params = parse_qs(parsed.query)
+                raw_action = params.get("action", [""])[0]
+                try:
+                    action = Action(raw_action)
+                except ValueError:
+                    self.send_error(HTTPStatus.BAD_REQUEST, "invalid action")
+                    return
+                self._send_json(session.apply_action(action))
+                return
+            self.send_error(HTTPStatus.NOT_FOUND)
+
+        def log_message(self, format: str, *args: object) -> None:  # noqa: A003
             return
-        if event.keysym.lower() == "r":
-            self.reference_state = self.initial_state
-            self.model_state = self.initial_state
-            self.last_action = Action.NONE
-            self._render()
-            return
 
-        action = action_from_keysym(event.keysym)
-        if action is None:
-            return
+        def _send_html(self, payload: str) -> None:
+            encoded = payload.encode("utf-8")
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(encoded)))
+            self.end_headers()
+            self.wfile.write(encoded)
 
-        self.last_action = action
-        self.reference_state = step_grid(self.reference_state, action)
-        prediction = predict_next_state(
-            self.checkpoint,
-            self.model_state,
-            action,
-            device=self.device,
-            hard_decode=True,
-        )
-        self.model_state = prediction_to_grid_state(prediction, value=self.model_state.value)
-        self._render()
+        def _send_json(self, payload: dict[str, object]) -> None:
+            encoded = json.dumps(payload).encode("utf-8")
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(encoded)))
+            self.end_headers()
+            self.wfile.write(encoded)
 
-    def _render(self) -> None:
-        mismatch = (self.reference_state.row, self.reference_state.col) != (
-            self.model_state.row,
-            self.model_state.col,
-        )
-        self._draw_state(self.reference_canvas, self.reference_state)
-        self._draw_state(self.model_canvas, self.model_state, mismatch=mismatch)
-        self.status_var.set(
-            "\n".join(
-                [
-                    f"last_action={self.last_action.value}",
-                    f"reference=({self.reference_state.row}, {self.reference_state.col})",
-                    f"model=({self.model_state.row}, {self.model_state.col})",
-                    f"match={'yes' if not mismatch else 'no'}",
-                ]
-            )
-        )
-
-    def _draw_state(self, canvas: tk.Canvas, state: GridState, mismatch: bool = False) -> None:
-        canvas.delete("all")
-        empty = "#f4f1ea"
-        active = "#0a7f3f"
-        outline = "#d3c7b8"
-        mismatch_outline = "#b42318"
-        for row in range(state.height):
-            for col in range(state.width):
-                x0 = col * self.cell_size
-                y0 = row * self.cell_size
-                x1 = x0 + self.cell_size
-                y1 = y0 + self.cell_size
-                is_active = (row, col) == (state.row, state.col)
-                canvas.create_rectangle(
-                    x0,
-                    y0,
-                    x1,
-                    y1,
-                    fill=active if is_active else empty,
-                    outline=mismatch_outline if mismatch and is_active else outline,
-                    width=3 if mismatch and is_active else 1,
-                )
+    return Handler
 
 
 @app.command()
@@ -154,19 +255,24 @@ def main(
     row: int = typer.Option(0, min=0),
     col: int = typer.Option(0, min=0),
     value: float = typer.Option(1.0),
-    cell_size: int = typer.Option(48, min=8),
+    host: str = typer.Option("127.0.0.1"),
+    port: int = typer.Option(8000, min=1, max=65535),
     device: str = typer.Option("auto"),
 ) -> None:
-    root = tk.Tk()
-    app = InteractiveCompareApp(
-        root,
-        checkpoint,
-        GridState(height=height, width=width, row=row, col=col, value=value),
-        cell_size=cell_size,
+    session = InteractiveCompareSession(
+        checkpoint_path=str(checkpoint),
+        initial_state=GridState(height=height, width=width, row=row, col=col, value=value),
         device=device,
     )
-    _ = app
-    root.mainloop()
+    server = ThreadingHTTPServer((host, port), make_handler(session))
+    typer.echo(f"Visualizer running at http://{host}:{port}")
+    typer.echo("Open that URL in your browser. Use arrow keys, Space, and R in the page.")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        typer.echo("\nShutting down visualizer.")
+    finally:
+        server.server_close()
 
 
 if __name__ == "__main__":
