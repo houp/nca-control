@@ -16,6 +16,33 @@ def test_model_forward_matches_target_grid_shape() -> None:
     assert model.perception.padding_mode == "circular"
 
 
+def test_model_accepts_custom_kernel_sizes() -> None:
+    dataset = build_transition_dataset(height=3, width=3)
+    model = ControllableNCAModel(perception_kernel_size=5, update_kernel_size=3)
+
+    outputs = model(dataset.inputs[:4])
+
+    assert outputs.shape == (4, 1, 3, 3)
+    assert model.perception.kernel_size == (5, 5)
+    assert model.update[1].kernel_size == (3, 3)
+
+
+def test_model_rejects_even_kernel_sizes() -> None:
+    try:
+        ControllableNCAModel(perception_kernel_size=2)
+    except ValueError as error:
+        assert "odd integer" in str(error)
+    else:
+        raise AssertionError("expected ValueError for even perception kernel")
+
+    try:
+        ControllableNCAModel(update_kernel_size=4)
+    except ValueError as error:
+        assert "odd integer" in str(error)
+    else:
+        raise AssertionError("expected ValueError for even update kernel")
+
+
 def test_model_outputs_are_bounded_and_finite() -> None:
     dataset = build_transition_dataset(height=2, width=2)
     model = ControllableNCAModel(cell_value_max=1.0)

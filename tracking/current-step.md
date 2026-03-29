@@ -2,29 +2,29 @@
 
 ## Step ID
 
-21
+22
 
 ## Title
 
-Patch-local training prototype
+Minimal maze-exit architecture sweep
 
 ## Scope
 
-- prototype a local `3x3` patch-based training task for the maze-control rule
-- compare its training cost against the current full-maze path
-- check whether it preserves exact cross-grid rollout behavior
+- retrain the `maze_exit` task from scratch after the `runs/` cleanup
+- start from the simplest architectures and increase complexity only as needed
+- stop at the first architecture that is exact on the training grid and on larger unseen grids
 
 ## Exit Criteria
 
-- a minimal patch-local training path exists
-- automated tests cover patch dataset generation and evaluation
-- a trained checkpoint is compared against the current maze baseline
+- at least one fresh checkpoint is trained from scratch
+- hidden-channel and kernel-size sweep results are recorded
+- the selected minimal model is verified on multiple grid sizes
 - findings are captured in markdown tracking
 - step is logged in `tracking/step-history.md`
 - local git commit is created
 
 ## Notes
 
-Step 20 changed the browser visualizer from keypress-driven stepping to a fixed simulation clock. When no input is queued, the visualizer now applies `none` automatically, so terminal exit-fill spread continues without extra keypresses. The training stack already included `Action.NONE`, so no dataset or model change was needed for this slice.
+Step 21 added architecture knobs for `perception_kernel_size` and `update_kernel_size`, so the sweep can now compare genuinely simpler and more complex convolutional models instead of only changing hidden width.
 
 Environment note: PyTorch MPS is available on this machine when checked outside the Codex sandbox. In-sandbox checks report `False`, so GPU-sensitive verification may require unsandboxed execution.

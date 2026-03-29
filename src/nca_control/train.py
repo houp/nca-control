@@ -32,6 +32,8 @@ class TrainConfig:
     eval_num_mazes: int = 8
     eval_seed_offset: int = 10_000
     hidden_channels: int = 32
+    perception_kernel_size: int = 3
+    update_kernel_size: int = 1
     batch_size: int = 32
     epochs: int = 100
     learning_rate: float = 1e-3
@@ -51,6 +53,8 @@ def train_one_step(config: TrainConfig, output_dir: str | Path) -> dict[str, obj
         input_channels=input_channels,
         state_channels=state_channels,
         hidden_channels=config.hidden_channels,
+        perception_kernel_size=config.perception_kernel_size,
+        update_kernel_size=config.update_kernel_size,
         cell_value_max=config.value,
     ).to(device)
     if device.type in {"mps", "cuda"}:

@@ -23,6 +23,8 @@ def load_checkpoint(
         input_channels=input_channels,
         state_channels=int(config.get("state_channels", 1)),
         hidden_channels=int(config["hidden_channels"]),
+        perception_kernel_size=int(config.get("perception_kernel_size", 3)),
+        update_kernel_size=int(config.get("update_kernel_size", 1)),
         cell_value_max=float(config["value"]),
     ).to(resolved_device)
     model.load_state_dict(payload["model_state_dict"])

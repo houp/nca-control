@@ -86,7 +86,16 @@ def test_train_one_step_creates_maze_exit_checkpoint_and_metrics(tmp_path) -> No
 
 def test_checkpoint_round_trip_supports_prediction(tmp_path) -> None:
     result = train_one_step(
-        TrainConfig(height=2, width=2, epochs=1, batch_size=4, hidden_channels=8, device="cpu"),
+        TrainConfig(
+            height=2,
+            width=2,
+            epochs=1,
+            batch_size=4,
+            hidden_channels=8,
+            perception_kernel_size=5,
+            update_kernel_size=3,
+            device="cpu",
+        ),
         output_dir=tmp_path,
     )
     checkpoint_path = result["checkpoint_path"]
@@ -100,10 +109,14 @@ def test_checkpoint_round_trip_supports_prediction(tmp_path) -> None:
     )
 
     assert config["height"] == 2
+    assert config["perception_kernel_size"] == 5
+    assert config["update_kernel_size"] == 3
     assert device.type == "cpu"
     assert prediction.shape == (1, 2, 2)
     assert torch.isfinite(prediction).all()
     assert model.training is False
+    assert model.perception.kernel_size == (5, 5)
+    assert model.update[1].kernel_size == (3, 3)
 
 
 def test_hard_decode_grid_returns_one_exact_active_cell() -> None:

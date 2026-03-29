@@ -12,23 +12,38 @@ class ControllableNCAModel(nn.Module):
         input_channels: int = 7,
         state_channels: int = 1,
         hidden_channels: int = 32,
+        perception_kernel_size: int = 3,
+        update_kernel_size: int = 1,
         cell_value_max: float = 1.0,
     ) -> None:
         super().__init__()
+        if perception_kernel_size <= 0 or perception_kernel_size % 2 == 0:
+            raise ValueError("perception_kernel_size must be a positive odd integer")
+        if update_kernel_size <= 0 or update_kernel_size % 2 == 0:
+            raise ValueError("update_kernel_size must be a positive odd integer")
         self.state_channels = state_channels
         self.cell_value_max = cell_value_max
+        self.perception_kernel_size = perception_kernel_size
+        self.update_kernel_size = update_kernel_size
 
         self.perception = nn.Conv2d(
             input_channels,
             hidden_channels,
-            kernel_size=3,
-            padding=1,
+            kernel_size=perception_kernel_size,
+            padding=perception_kernel_size // 2,
             padding_mode="circular",
             bias=True,
         )
         self.update = nn.Sequential(
             nn.ReLU(),
-            nn.Conv2d(hidden_channels, hidden_channels, kernel_size=1, bias=True),
+            nn.Conv2d(
+                hidden_channels,
+                hidden_channels,
+                kernel_size=update_kernel_size,
+                padding=update_kernel_size // 2,
+                padding_mode="circular",
+                bias=True,
+            ),
             nn.ReLU(),
             nn.Conv2d(hidden_channels, state_channels, kernel_size=1, bias=True),
         )
