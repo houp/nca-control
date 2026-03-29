@@ -9,7 +9,11 @@ from .dataset import (
     state_to_tensor,
 )
 from .device import resolve_device
-from .evaluate import decode_argmax_positions, evaluate_checkpoint
+from .evaluate import (
+    decode_argmax_positions,
+    evaluate_checkpoint,
+    evaluate_rollout_checkpoint,
+)
 from .grid import GridState, step_grid
 from .inference import load_checkpoint, predict_next_state
 from .interactive import action_from_keysym, prediction_to_grid_state
@@ -29,6 +33,7 @@ __all__ = [
     "decode_argmax_positions",
     "encode_control_input",
     "evaluate_checkpoint",
+    "evaluate_rollout_checkpoint",
     "load_checkpoint",
     "parse_actions",
     "prediction_to_grid_state",

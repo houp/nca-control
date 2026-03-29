@@ -82,6 +82,12 @@ Evaluate a checkpoint:
 .venv/bin/python scripts/evaluate_one_step.py --checkpoint runs/demo/checkpoint.pt
 ```
 
+Evaluate long random rollouts:
+
+```bash
+.venv/bin/python scripts/evaluate_rollout.py --checkpoint runs/demo/checkpoint.pt --num-sequences 256 --steps-per-sequence 1000
+```
+
 Infer one step from a chosen state/action:
 
 ```bash
