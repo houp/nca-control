@@ -26,16 +26,27 @@ def test_train_one_step_creates_checkpoint_and_metrics(tmp_path) -> None:
 
     checkpoint_path = result["checkpoint_path"]
     metrics_path = result["metrics_path"]
+    progress_path = result["progress_path"]
+    latest_status_path = result["latest_status_path"]
     metrics = result["metrics"]
 
     assert checkpoint_path.exists()
     assert metrics_path.exists()
+    assert progress_path.exists()
+    assert latest_status_path.exists()
     assert metrics["device"] == "cpu"
     assert metrics["num_samples"] == 45
     assert metrics["final_loss"] >= 0.0
 
     saved_metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
     assert saved_metrics["num_samples"] == 45
+    progress_records = [json.loads(line) for line in progress_path.read_text(encoding="utf-8").splitlines()]
+    assert len(progress_records) == 2
+    assert progress_records[0]["epoch"] == 1
+    assert progress_records[-1]["epoch"] == 2
+    latest_status = json.loads(latest_status_path.read_text(encoding="utf-8"))
+    assert latest_status["status"] == "completed"
+    assert latest_status["epoch"] == 2
 
 
 def test_train_one_step_creates_maze_checkpoint_and_metrics(tmp_path) -> None:

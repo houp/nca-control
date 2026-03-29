@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -41,10 +41,17 @@ class TrainConfig:
     seed: int = 0
 
 
-def train_one_step(config: TrainConfig, output_dir: str | Path) -> dict[str, object]:
+def train_one_step(
+    config: TrainConfig,
+    output_dir: str | Path,
+    progress_printer: Callable[[str], None] | None = None,
+) -> dict[str, object]:
     torch.manual_seed(config.seed)
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
+    progress_path = output_path / "progress.jsonl"
+    latest_status_path = output_path / "latest_status.json"
+    progress_path.write_text("", encoding="utf-8")
 
     device = resolve_device(config.device)
     dataset, num_samples, input_channels = _build_training_dataset(config)
@@ -64,7 +71,20 @@ def train_one_step(config: TrainConfig, output_dir: str | Path) -> dict[str, obj
     losses: list[float] = []
     epoch_times_sec: list[float] = []
     training_start = time.perf_counter()
-    for _ in range(config.epochs):
+    _write_json_file(
+        latest_status_path,
+        {
+            "status": "running",
+            "device": str(device),
+            "epoch": 0,
+            "epochs_total": config.epochs,
+            "num_samples": num_samples,
+            "checkpoint_path": str(output_path / "checkpoint.pt"),
+            "metrics_path": str(output_path / "metrics.json"),
+            "progress_path": str(progress_path),
+        },
+    )
+    for epoch_index in range(1, config.epochs + 1):
         epoch_start = time.perf_counter()
         epoch_loss = 0.0
         sample_count = 0
@@ -83,8 +103,44 @@ def train_one_step(config: TrainConfig, output_dir: str | Path) -> dict[str, obj
             epoch_loss += loss.item() * batch_size
             sample_count += batch_size
 
-        losses.append(epoch_loss / sample_count)
-        epoch_times_sec.append(time.perf_counter() - epoch_start)
+        epoch_loss_mean = epoch_loss / sample_count
+        epoch_time_sec = time.perf_counter() - epoch_start
+        elapsed_sec = time.perf_counter() - training_start
+        losses.append(epoch_loss_mean)
+        epoch_times_sec.append(epoch_time_sec)
+        progress_record = {
+            "epoch": epoch_index,
+            "epochs_total": config.epochs,
+            "device": str(device),
+            "loss": epoch_loss_mean,
+            "epoch_time_sec": epoch_time_sec,
+            "elapsed_sec": elapsed_sec,
+            "epoch_samples_per_second": sample_count / epoch_time_sec,
+            "running_samples_per_second": (num_samples * epoch_index) / elapsed_sec,
+            "num_samples": num_samples,
+        }
+        _append_jsonl_record(progress_path, progress_record)
+        _write_json_file(
+            latest_status_path,
+            {
+                "status": "running",
+                **progress_record,
+                "checkpoint_path": str(output_path / "checkpoint.pt"),
+                "metrics_path": str(output_path / "metrics.json"),
+                "progress_path": str(progress_path),
+            },
+        )
+        if progress_printer is not None:
+            progress_printer(
+                " ".join(
+                    [
+                        f"epoch={epoch_index}/{config.epochs}",
+                        f"loss={epoch_loss_mean:.6f}",
+                        f"epoch_time_sec={epoch_time_sec:.3f}",
+                        f"samples_per_second={sample_count / epoch_time_sec:.2f}",
+                    ]
+                )
+            )
 
     total_train_time_sec = time.perf_counter() - training_start
 
@@ -113,9 +169,27 @@ def train_one_step(config: TrainConfig, output_dir: str | Path) -> dict[str, obj
         "num_samples": num_samples,
     }
     metrics_path.write_text(json.dumps(metrics, indent=2) + "\n", encoding="utf-8")
+    _write_json_file(
+        latest_status_path,
+        {
+            "status": "completed",
+            "device": str(device),
+            "epoch": config.epochs,
+            "epochs_total": config.epochs,
+            "final_loss": losses[-1],
+            "total_train_time_sec": total_train_time_sec,
+            "samples_per_second": metrics["samples_per_second"],
+            "num_samples": num_samples,
+            "checkpoint_path": str(checkpoint_path),
+            "metrics_path": str(metrics_path),
+            "progress_path": str(progress_path),
+        },
+    )
     return {
         "checkpoint_path": checkpoint_path,
         "metrics_path": metrics_path,
+        "progress_path": progress_path,
+        "latest_status_path": latest_status_path,
         "metrics": metrics,
     }
 
@@ -185,6 +259,15 @@ def _task_state_channels(task: str) -> int:
     if task == "maze_exit":
         return 2
     return 1
+
+
+def _append_jsonl_record(path: Path, record: dict[str, object]) -> None:
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(record) + "\n")
+
+
+def _write_json_file(path: Path, payload: dict[str, object]) -> None:
+    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
 def _compute_loss(logits: torch.Tensor, targets: torch.Tensor, task: str) -> torch.Tensor:

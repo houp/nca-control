@@ -49,10 +49,13 @@ def main(
             seed=seed,
         ),
         output_dir=output_dir,
+        progress_printer=typer.echo,
     )
     metrics = result["metrics"]
     typer.echo(f"checkpoint={result['checkpoint_path']}")
     typer.echo(f"metrics={result['metrics_path']}")
+    typer.echo(f"progress={result['progress_path']}")
+    typer.echo(f"latest_status={result['latest_status_path']}")
     typer.echo(f"device={metrics['device']}")
     typer.echo(f"final_loss={metrics['final_loss']:.6f}")
     typer.echo(f"samples_per_second={metrics['samples_per_second']:.2f}")

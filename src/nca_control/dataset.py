@@ -43,6 +43,7 @@ class MazeTransitionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
             (len(ACTION_ORDER), len(ACTION_ORDER), self.height, self.width),
             dtype=torch.float32,
         )
+        self._tensor_bank_cache: dict[str, dict[str, torch.Tensor]] = {}
         for layout_index, layout in enumerate(layouts):
             for row, col in layout.blocked:
                 self.blocked_grids[layout_index, row, col] = 1.0
@@ -62,6 +63,7 @@ class MazeTransitionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         device: str | torch.device = "cpu",
     ) -> tuple[torch.Tensor, torch.Tensor]:
         target_device = torch.device(device)
+        tensor_bank = self._tensor_bank_for_device(target_device)
         metadata = self.examples.index_select(0, indices.to("cpu")).to(target_device)
         layout_indices = metadata[:, 0]
         rows = metadata[:, 1]
@@ -70,8 +72,8 @@ class MazeTransitionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
 
         batch_size = int(metadata.shape[0])
         batch_index = torch.arange(batch_size, device=target_device)
-        blocked = self.blocked_grids.index_select(0, layout_indices.to("cpu")).to(target_device)
-        action_channels = self.action_grids.index_select(0, action_indices.to("cpu")).to(target_device)
+        blocked = tensor_bank["blocked_grids"].index_select(0, layout_indices)
+        action_channels = tensor_bank["action_grids"].index_select(0, action_indices)
 
         state_channel = torch.zeros((batch_size, 1, self.height, self.width), dtype=torch.float32, device=target_device)
         state_channel[batch_index, 0, rows, cols] = self.value
@@ -95,6 +97,21 @@ class MazeTransitionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         targets[batch_index, 0, target_rows, target_cols] = self.value
         return inputs, targets
 
+    def _tensor_bank_for_device(self, device: torch.device) -> dict[str, torch.Tensor]:
+        device_key = str(device)
+        if device_key not in self._tensor_bank_cache:
+            if device.type == "cpu":
+                self._tensor_bank_cache[device_key] = {
+                    "blocked_grids": self.blocked_grids,
+                    "action_grids": self.action_grids,
+                }
+            else:
+                self._tensor_bank_cache[device_key] = {
+                    "blocked_grids": self.blocked_grids.to(device),
+                    "action_grids": self.action_grids.to(device),
+                }
+        return self._tensor_bank_cache[device_key]
+
 
 class MazeExitTransitionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
     def __init__(
@@ -115,6 +132,7 @@ class MazeExitTransitionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
             (len(ACTION_ORDER), len(ACTION_ORDER), self.height, self.width),
             dtype=torch.float32,
         )
+        self._tensor_bank_cache: dict[str, dict[str, torch.Tensor]] = {}
         for layout_index, layout in enumerate(layouts):
             for row, col in layout.blocked:
                 self.blocked_grids[layout_index, row, col] = 1.0
@@ -137,6 +155,7 @@ class MazeExitTransitionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         device: str | torch.device = "cpu",
     ) -> tuple[torch.Tensor, torch.Tensor]:
         target_device = torch.device(device)
+        tensor_bank = self._tensor_bank_for_device(target_device)
         metadata = self.examples.index_select(0, indices.to("cpu")).to(target_device)
         layout_indices = metadata[:, 0]
         rows = metadata[:, 1]
@@ -147,14 +166,14 @@ class MazeExitTransitionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
 
         batch_size = int(metadata.shape[0])
         batch_index = torch.arange(batch_size, device=target_device)
-        blocked = self.blocked_grids.index_select(0, layout_indices.to("cpu")).to(target_device)
+        blocked = tensor_bank["blocked_grids"].index_select(0, layout_indices)
         exit_fill = _select_exit_fill_grids(
-            self.exit_fill_grids,
-            layout_indices.to("cpu"),
-            fill_stage_indices.to("cpu"),
-        ).to(target_device)
-        action_channels = self.action_grids.index_select(0, action_indices.to("cpu")).to(target_device)
-        exit_cells = self.exit_cells.index_select(0, layout_indices.to("cpu")).to(target_device)
+            tensor_bank["exit_fill_grids"],
+            layout_indices,
+            fill_stage_indices,
+        )
+        action_channels = tensor_bank["action_grids"].index_select(0, action_indices)
+        exit_cells = tensor_bank["exit_cells"].index_select(0, layout_indices)
         exit_rows = exit_cells[:, 0]
         exit_cols = exit_cells[:, 1]
 
@@ -198,14 +217,14 @@ class MazeExitTransitionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         if terminated_examples.any():
             terminated_indices = batch_index[terminated_examples]
             max_stage_indices = (
-                self.fill_stage_lengths.index_select(0, layout_indices[terminated_examples].to("cpu")).to(target_device) - 1
+                tensor_bank["fill_stage_lengths"].index_select(0, layout_indices[terminated_examples]) - 1
             )
             next_stage_indices = torch.minimum(fill_stage_indices[terminated_examples] + 1, max_stage_indices)
             next_exit_fill = _select_exit_fill_grids(
-                self.exit_fill_grids,
-                layout_indices[terminated_examples].to("cpu"),
-                next_stage_indices.to("cpu"),
-            ).to(target_device)
+                tensor_bank["exit_fill_grids"],
+                layout_indices[terminated_examples],
+                next_stage_indices,
+            )
             targets[terminated_indices, 1, :, :] = next_exit_fill
         return inputs, targets
 
@@ -227,6 +246,27 @@ class MazeExitTransitionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
             exit_fill=exit_fill,
             terminated=bool(terminated_flag),
         )
+
+    def _tensor_bank_for_device(self, device: torch.device) -> dict[str, torch.Tensor]:
+        device_key = str(device)
+        if device_key not in self._tensor_bank_cache:
+            if device.type == "cpu":
+                self._tensor_bank_cache[device_key] = {
+                    "blocked_grids": self.blocked_grids,
+                    "exit_fill_grids": self.exit_fill_grids,
+                    "fill_stage_lengths": self.fill_stage_lengths,
+                    "exit_cells": self.exit_cells,
+                    "action_grids": self.action_grids,
+                }
+            else:
+                self._tensor_bank_cache[device_key] = {
+                    "blocked_grids": self.blocked_grids.to(device),
+                    "exit_fill_grids": self.exit_fill_grids.to(device),
+                    "fill_stage_lengths": self.fill_stage_lengths.to(device),
+                    "exit_cells": self.exit_cells.to(device),
+                    "action_grids": self.action_grids.to(device),
+                }
+        return self._tensor_bank_cache[device_key]
 
 
 def state_to_tensor(state: GridState, device: str | torch.device = "cpu") -> torch.Tensor:

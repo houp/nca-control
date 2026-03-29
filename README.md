@@ -100,6 +100,12 @@ Step 22 now establishes:
 - a fresh minimal-architecture sweep after clearing `runs/`
 - a verified smaller exact model at `hidden_channels=32`, `perception_kernel_size=3`, `update_kernel_size=1`
 
+Step 24 now establishes:
+
+- per-epoch training progress artifacts in each run directory
+- non-silent CLI training output with per-epoch loss and speed
+- an MPS-vs-CPU throughput investigation showing that MPS loses on tiny `9x9` workloads but reaches parity on larger `30x30` runs
+
 ## Commands
 
 Train a one-step model:
@@ -107,6 +113,14 @@ Train a one-step model:
 ```bash
 .venv/bin/python scripts/train_one_step.py --output-dir runs/demo --height 6 --width 6 --epochs 100
 ```
+
+Each training run now writes live progress into:
+
+- `runs/.../progress.jsonl`
+- `runs/.../latest_status.json`
+- `runs/.../metrics.json`
+
+The CLI also prints one line per epoch with loss and throughput.
 
 Train a maze-aware model:
 

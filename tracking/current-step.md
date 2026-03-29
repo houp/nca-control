@@ -2,7 +2,7 @@
 
 ## Step ID
 
-24
+25
 
 ## Title
 
@@ -27,3 +27,5 @@ MPS reproducibility hardening
 Step 23 recorded the first MPS replication check. The selected `32/3/1` architecture preserved exact `30x30` and `50x50` rollouts across three fresh MPS runs, but one of the three runs missed strict one-step full-state exactness slightly (`0.998837`). The next slice should harden the recipe, not the architecture.
 
 Environment note: PyTorch MPS is available on this machine when checked outside the Codex sandbox. In-sandbox checks report `False`, so GPU-sensitive verification may require unsandboxed execution.
+
+Step 24 delivered training progress artifacts and a device-throughput investigation instead. That clarified that the current MPS path is not fundamentally broken: it is slower than CPU on tiny `9x9` workloads, but reaches rough parity on `30x30` once the convolution workload is large enough. The reproducibility-hardening work remains pending.
