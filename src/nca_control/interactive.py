@@ -24,15 +24,19 @@ def action_from_keysym(keysym: str) -> Action | None:
         return Action.NONE
     return None
 
-
-def prediction_to_grid_state(prediction: torch.Tensor, *, value: float = 1.0) -> GridState:
+def prediction_to_grid_state(
+    prediction: torch.Tensor,
+    *,
+    value: float = 1.0,
+    blocked: frozenset[tuple[int, int]] = frozenset(),
+) -> GridState:
     if prediction.ndim != 3 or prediction.shape[0] != 1:
         raise ValueError("prediction must have shape [1, height, width]")
     height, width = prediction.shape[1], prediction.shape[2]
     flat_index = int(torch.argmax(prediction[0]).item())
     row = flat_index // width
     col = flat_index % width
-    return GridState(height=height, width=width, row=row, col=col, value=value)
+    return GridState(height=height, width=width, row=row, col=col, value=value, blocked=blocked)
 
 
 @dataclass(slots=True)
@@ -74,7 +78,11 @@ class InteractiveCompareSession:
                 device=self.device,
                 hard_decode=True,
             )
-            self.model_state = prediction_to_grid_state(prediction, value=self.model_state.value)
+            self.model_state = prediction_to_grid_state(
+                prediction,
+                value=self.model_state.value,
+                blocked=self.model_state.blocked,
+            )
             self.version += 1
             return self._snapshot_unlocked()
 
@@ -103,4 +111,5 @@ def serialize_grid_state(state: GridState) -> dict[str, object]:
         "row": state.row,
         "col": state.col,
         "value": state.value,
+        "blocked": [[row, col] for row, col in sorted(state.blocked)],
     }

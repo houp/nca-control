@@ -10,7 +10,9 @@ import typer
 
 from nca_control.actions import Action
 from nca_control.grid import GridState
+from nca_control.inference import load_checkpoint
 from nca_control.interactive import InteractiveCompareSession
+from nca_control.maze import generate_maze
 
 app = typer.Typer(add_completion=False)
 
@@ -139,12 +141,17 @@ HTML_PAGE = """<!doctype html>
     let requestQueue = Promise.resolve();
 
     function drawGrid(target, state, mismatch) {
+      const blocked = new Set((state.blocked || []).map(([row, col]) => `${row},${col}`));
       target.style.gridTemplateColumns = `repeat(${state.width}, minmax(0, 1fr))`;
       target.innerHTML = "";
       for (let row = 0; row < state.height; row += 1) {
         for (let col = 0; col < state.width; col += 1) {
           const cell = document.createElement("div");
           cell.className = "cell";
+          if (blocked.has(`${row},${col}`)) {
+            cell.style.background = "#2f3a45";
+            cell.style.borderColor = "#20262d";
+          }
           if (row === state.row && col === state.col) {
             cell.classList.add("active");
             if (mismatch) {
@@ -266,16 +273,34 @@ def main(
     checkpoint: Path = typer.Option(..., exists=True, file_okay=True, dir_okay=False),
     height: int = typer.Option(6, min=1),
     width: int = typer.Option(6, min=1),
-    row: int = typer.Option(0, min=0),
-    col: int = typer.Option(0, min=0),
+    row: int | None = typer.Option(None, min=0),
+    col: int | None = typer.Option(None, min=0),
     value: float = typer.Option(1.0),
+    maze_seed: int | None = typer.Option(None, help="Generate and visualize a maze using this seed."),
     host: str = typer.Option("127.0.0.1"),
     port: int = typer.Option(8000, min=1, max=65535),
     device: str = typer.Option("auto"),
 ) -> None:
+    _model, config, _resolved = load_checkpoint(checkpoint, device="cpu")
+    effective_maze_seed = maze_seed
+    if effective_maze_seed is None and str(config.get("task", "plain")) == "maze":
+        effective_maze_seed = int(config.get("maze_seed", 0))
+
+    if effective_maze_seed is not None:
+        layout = generate_maze(height=height, width=width, seed=effective_maze_seed)
+        if row is not None and col is not None and (row, col) not in layout.blocked:
+            start_row, start_col = row, col
+        else:
+            start_row, start_col = layout.open_cells()[0]
+        initial_state = layout.to_grid_state(row=start_row, col=start_col, value=value)
+    else:
+        start_row = row if row is not None else 0
+        start_col = col if col is not None else 0
+        initial_state = GridState(height=height, width=width, row=start_row, col=start_col, value=value)
+
     session = InteractiveCompareSession(
         checkpoint_path=str(checkpoint),
-        initial_state=GridState(height=height, width=width, row=row, col=col, value=value),
+        initial_state=initial_state,
         device=device,
     )
     server = HTTPServer((host, port), make_handler(session))

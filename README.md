@@ -87,6 +87,12 @@ Train a one-step model:
 .venv/bin/python scripts/train_one_step.py --output-dir runs/demo --height 6 --width 6 --epochs 100
 ```
 
+Train a maze-aware model:
+
+```bash
+.venv/bin/python scripts/train_one_step.py --task maze --output-dir runs/maze9 --height 9 --width 9 --num-mazes 32 --eval-num-mazes 8 --epochs 50
+```
+
 Evaluate a checkpoint:
 
 ```bash
@@ -112,6 +118,12 @@ Launch the interactive visual comparison app:
 ```
 
 Then open `http://127.0.0.1:8000` in your browser.
+
+For the maze checkpoint, the visualizer automatically uses the maze seed stored in the checkpoint config:
+
+```bash
+.venv/bin/python scripts/interactive_compare.py --checkpoint runs/maze9/checkpoint.pt --height 9 --width 9 --port 8767
+```
 
 ## Planned Stack
 

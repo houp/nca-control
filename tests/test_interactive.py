@@ -25,16 +25,26 @@ def test_action_from_keysym_maps_controls() -> None:
 def test_prediction_to_grid_state_selects_argmax_location() -> None:
     prediction = torch.tensor([[[0.1, 0.2, 0.3], [0.0, 0.9, 0.1]]], dtype=torch.float32)
 
-    state = prediction_to_grid_state(prediction, value=1.0)
+    state = prediction_to_grid_state(prediction, value=1.0, blocked=frozenset({(0, 0)}))
 
     assert (state.row, state.col) == (1, 1)
     assert state.value == 1.0
+    assert state.blocked == frozenset({(0, 0)})
 
 
 def test_serialize_grid_state_returns_json_ready_dict() -> None:
-    payload = serialize_grid_state(GridState(height=4, width=5, row=1, col=2, value=3.0))
+    payload = serialize_grid_state(
+        GridState(height=4, width=5, row=1, col=2, value=3.0, blocked=frozenset({(0, 0), (3, 4)}))
+    )
 
-    assert payload == {"height": 4, "width": 5, "row": 1, "col": 2, "value": 3.0}
+    assert payload == {
+        "height": 4,
+        "width": 5,
+        "row": 1,
+        "col": 2,
+        "value": 3.0,
+        "blocked": [[0, 0], [3, 4]],
+    }
 
 
 def test_interactive_session_reset_restores_initial_state(tmp_path) -> None:
@@ -42,11 +52,11 @@ def test_interactive_session_reset_restores_initial_state(tmp_path) -> None:
     checkpoint_path.write_text("unused", encoding="utf-8")
     session = InteractiveCompareSession(
         checkpoint_path=str(checkpoint_path),
-        initial_state=GridState(height=3, width=3, row=1, col=1, value=1.0),
+        initial_state=GridState(height=3, width=3, row=1, col=1, value=1.0, blocked=frozenset({(0, 0)})),
         device="cpu",
     )
-    session.reference_state = GridState(height=3, width=3, row=0, col=1, value=1.0)
-    session.model_state = GridState(height=3, width=3, row=2, col=2, value=1.0)
+    session.reference_state = GridState(height=3, width=3, row=0, col=1, value=1.0, blocked=frozenset({(0, 0)}))
+    session.model_state = GridState(height=3, width=3, row=2, col=2, value=1.0, blocked=frozenset({(0, 0)}))
     session.last_action = Action.LEFT
 
     payload = session.reset()
@@ -55,6 +65,7 @@ def test_interactive_session_reset_restores_initial_state(tmp_path) -> None:
     assert payload["last_action"] == "none"
     assert payload["reference"]["row"] == 1
     assert payload["model"]["col"] == 1
+    assert payload["reference"]["blocked"] == [[0, 0]]
 
 
 def test_interactive_session_apply_action_updates_reference_and_model(monkeypatch, tmp_path) -> None:
@@ -62,7 +73,7 @@ def test_interactive_session_apply_action_updates_reference_and_model(monkeypatc
     checkpoint_path.write_text("unused", encoding="utf-8")
     session = InteractiveCompareSession(
         checkpoint_path=str(checkpoint_path),
-        initial_state=GridState(height=3, width=3, row=0, col=0, value=1.0),
+        initial_state=GridState(height=3, width=3, row=0, col=0, value=1.0, blocked=frozenset({(2, 2)})),
         device="cpu",
     )
 
@@ -80,6 +91,7 @@ def test_interactive_session_apply_action_updates_reference_and_model(monkeypatc
     assert payload["model"]["row"] == 0
     assert payload["model"]["col"] == 1
     assert payload["match"] is True
+    assert payload["model"]["blocked"] == [[2, 2]]
 
 
 def test_interactive_session_version_increments_monotonically(monkeypatch, tmp_path) -> None:
@@ -87,7 +99,7 @@ def test_interactive_session_version_increments_monotonically(monkeypatch, tmp_p
     checkpoint_path.write_text("unused", encoding="utf-8")
     session = InteractiveCompareSession(
         checkpoint_path=str(checkpoint_path),
-        initial_state=GridState(height=3, width=3, row=0, col=0, value=1.0),
+        initial_state=GridState(height=3, width=3, row=0, col=0, value=1.0, blocked=frozenset({(1, 1)})),
         device="cpu",
     )
 
