@@ -127,6 +127,12 @@ Evaluate long random rollouts:
 .venv/bin/python scripts/evaluate_rollout.py --checkpoint runs/demo/checkpoint.pt --num-sequences 256 --steps-per-sequence 1000
 ```
 
+Evaluate cross-grid rollout generalization on a different maze size:
+
+```bash
+.venv/bin/python scripts/evaluate_generalization.py --checkpoint runs/maze-exit9/checkpoint.pt --height 30 --width 30 --num-sequences 64 --steps-per-sequence 200
+```
+
 Infer one step from a chosen state/action:
 
 ```bash

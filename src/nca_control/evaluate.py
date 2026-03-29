@@ -67,6 +67,8 @@ def evaluate_rollout_checkpoint(
     device: str = "auto",
     seed: int = 0,
     max_reported_failures: int = 5,
+    height: int | None = None,
+    width: int | None = None,
 ) -> dict[str, object]:
     model, config, resolved_device = load_checkpoint(checkpoint_path, device=device)
     if str(config.get("task", "plain")) == "maze_exit":
@@ -78,9 +80,11 @@ def evaluate_rollout_checkpoint(
             steps_per_sequence=steps_per_sequence,
             seed=seed,
             max_reported_failures=max_reported_failures,
+            height_override=height,
+            width_override=width,
         )
-    height = int(config["height"])
-    width = int(config["width"])
+    rollout_height = int(config["height"]) if height is None else int(height)
+    rollout_width = int(config["width"]) if width is None else int(width)
     value = float(config["value"])
     task = str(config.get("task", "plain"))
     up_index = ACTION_ORDER.index(ACTION_ORDER[1])
@@ -91,13 +95,13 @@ def evaluate_rollout_checkpoint(
     generator = torch.Generator(device="cpu")
     generator.manual_seed(seed)
 
-    blocked_tensor = torch.zeros((num_sequences, height, width), dtype=torch.bool, device=resolved_device)
+    blocked_tensor = torch.zeros((num_sequences, rollout_height, rollout_width), dtype=torch.bool, device=resolved_device)
     if task == "maze":
         maze_seed = int(config.get("maze_seed", 0))
         start_rows: list[int] = []
         start_cols: list[int] = []
         for index in range(num_sequences):
-            layout = generate_maze(height=height, width=width, seed=maze_seed + seed + index)
+            layout = generate_maze(height=rollout_height, width=rollout_width, seed=maze_seed + seed + index)
             open_cells = layout.open_cells()
             sampled_index = int(torch.randint(0, len(open_cells), (1,), generator=generator, device="cpu").item())
             row, col = open_cells[sampled_index]
@@ -108,8 +112,8 @@ def evaluate_rollout_checkpoint(
         ref_rows = torch.tensor(start_rows, dtype=torch.long, device=resolved_device)
         ref_cols = torch.tensor(start_cols, dtype=torch.long, device=resolved_device)
     else:
-        ref_rows = torch.randint(0, height, (num_sequences,), generator=generator, device="cpu").to(resolved_device)
-        ref_cols = torch.randint(0, width, (num_sequences,), generator=generator, device="cpu").to(resolved_device)
+        ref_rows = torch.randint(0, rollout_height, (num_sequences,), generator=generator, device="cpu").to(resolved_device)
+        ref_cols = torch.randint(0, rollout_width, (num_sequences,), generator=generator, device="cpu").to(resolved_device)
     model_rows = ref_rows.clone()
     model_cols = ref_cols.clone()
 
@@ -132,19 +136,19 @@ def evaluate_rollout_checkpoint(
         action_indices = action_indices.to(resolved_device)
         proposed_ref_rows = torch.where(
             action_indices == up_index,
-            (ref_rows - 1) % height,
-            torch.where(action_indices == down_index, (ref_rows + 1) % height, ref_rows),
+            (ref_rows - 1) % rollout_height,
+            torch.where(action_indices == down_index, (ref_rows + 1) % rollout_height, ref_rows),
         )
         proposed_ref_cols = torch.where(
             action_indices == left_index,
-            (ref_cols - 1) % width,
-            torch.where(action_indices == right_index, (ref_cols + 1) % width, ref_cols),
+            (ref_cols - 1) % rollout_width,
+            torch.where(action_indices == right_index, (ref_cols + 1) % rollout_width, ref_cols),
         )
         blocked_reference = blocked_tensor[batch_index, proposed_ref_rows, proposed_ref_cols]
         ref_rows = torch.where(blocked_reference, ref_rows, proposed_ref_rows)
         ref_cols = torch.where(blocked_reference, ref_cols, proposed_ref_cols)
 
-        inputs = torch.zeros((num_sequences, 2 + len(ACTION_ORDER), height, width), device=resolved_device)
+        inputs = torch.zeros((num_sequences, 2 + len(ACTION_ORDER), rollout_height, rollout_width), device=resolved_device)
         inputs[batch_index, 0, model_rows, model_cols] = value
         inputs[:, 1, :, :] = blocked_tensor.to(dtype=torch.float32)
         inputs[batch_index, 2 + action_indices, :, :] = 1.0
@@ -153,8 +157,8 @@ def evaluate_rollout_checkpoint(
             predictions = model(inputs)
 
         flat_indices = torch.argmax(predictions[:, 0].reshape(num_sequences, -1), dim=1)
-        model_rows = torch.div(flat_indices, width, rounding_mode="floor")
-        model_cols = flat_indices % width
+        model_rows = torch.div(flat_indices, rollout_width, rounding_mode="floor")
+        model_cols = flat_indices % rollout_width
 
         mismatch = ((ref_rows != model_rows) | (ref_cols != model_cols)) & (~failed)
         first_failure_step[mismatch] = step_index + 1
@@ -188,6 +192,8 @@ def evaluate_rollout_checkpoint(
 
     return {
         "device": str(resolved_device),
+        "rollout_height": rollout_height,
+        "rollout_width": rollout_width,
         "num_sequences": num_sequences,
         "steps_per_sequence": steps_per_sequence,
         "total_rollout_steps": num_sequences * steps_per_sequence,
@@ -304,9 +310,11 @@ def _evaluate_exit_rollout(
     steps_per_sequence: int,
     seed: int,
     max_reported_failures: int,
+    height_override: int | None = None,
+    width_override: int | None = None,
 ) -> dict[str, object]:
-    height = int(config["height"])
-    width = int(config["width"])
+    height = int(config["height"]) if height_override is None else int(height_override)
+    width = int(config["width"]) if width_override is None else int(width_override)
     value = float(config["value"])
     maze_seed = int(config.get("maze_seed", 0))
     generator = torch.Generator(device="cpu")
@@ -369,6 +377,8 @@ def _evaluate_exit_rollout(
 
     return {
         "device": str(device),
+        "rollout_height": height,
+        "rollout_width": width,
         "num_sequences": num_sequences,
         "steps_per_sequence": steps_per_sequence,
         "total_rollout_steps": num_sequences * steps_per_sequence,
