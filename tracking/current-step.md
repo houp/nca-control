@@ -2,7 +2,7 @@
 
 ## Step ID
 
-20
+21
 
 ## Title
 
@@ -25,6 +25,6 @@ Patch-local training prototype
 
 ## Notes
 
-Step 19 established that the current fully convolutional `maze_exit` model already generalizes from `9x9` training mazes to much larger mazes in rollout evaluation, including `50x50`. The patch-local idea remains interesting mainly as a training-speed optimization and a cleaner locality experiment.
+Step 20 changed the browser visualizer from keypress-driven stepping to a fixed simulation clock. When no input is queued, the visualizer now applies `none` automatically, so terminal exit-fill spread continues without extra keypresses. The training stack already included `Action.NONE`, so no dataset or model change was needed for this slice.
 
 Environment note: PyTorch MPS is available on this machine when checked outside the Codex sandbox. In-sandbox checks report `False`, so GPU-sensitive verification may require unsandboxed execution.

@@ -200,3 +200,40 @@ def test_interactive_session_reset_factory_generates_new_state(tmp_path) -> None
     assert payload["reference"]["row"] == 0
     payload = session.reset()
     assert payload["reference"]["row"] == 1
+
+
+def test_interactive_session_none_ticks_expand_terminal_exit_fill(monkeypatch, tmp_path) -> None:
+    checkpoint_path = tmp_path / "dummy.pt"
+    checkpoint_path.write_text("unused", encoding="utf-8")
+    session = InteractiveCompareSession(
+        checkpoint_path=str(checkpoint_path),
+        initial_state=GridState(
+            height=3,
+            width=3,
+            row=0,
+            col=0,
+            value=1.0,
+            exit_cell=(0, 1),
+        ),
+        device="cpu",
+    )
+
+    def fake_predict_next_state(*args, **kwargs):  # type: ignore[no-untyped-def]
+        return torch.tensor(
+            [
+                [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [[0.0, 1.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+            ],
+            dtype=torch.float32,
+        )
+
+    monkeypatch.setattr("nca_control.interactive.predict_next_state", fake_predict_next_state)
+
+    first = session.apply_action(Action.RIGHT)
+    second = session.apply_action(Action.NONE)
+
+    assert first["reference"]["terminated"] is True
+    assert first["model"]["terminated"] is True
+    assert sorted(map(tuple, second["reference"]["exit_fill"])) == [(0, 0), (0, 1), (0, 2), (1, 1)]
+    assert second["reference"]["exit_fill"] == second["model"]["exit_fill"]
+    assert second["match"] is True

@@ -145,7 +145,7 @@ Launch the interactive visual comparison app:
 .venv/bin/python scripts/interactive_compare.py --checkpoint runs/demo/checkpoint.pt --height 6 --width 6
 ```
 
-Then open `http://127.0.0.1:8000` in your browser.
+Then open `http://127.0.0.1:8000` in your browser. The visualizer advances on a fixed clock and applies `none` automatically when no keypress is queued. You can tune the clock with `--tick-ms`.
 
 For the maze checkpoint, the visualizer automatically uses the maze seed stored in the checkpoint config:
 

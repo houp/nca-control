@@ -16,7 +16,7 @@ from nca_control.maze import generate_maze
 
 app = typer.Typer(add_completion=False)
 
-HTML_PAGE = """<!doctype html>
+HTML_TEMPLATE = """<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -114,7 +114,7 @@ HTML_PAGE = """<!doctype html>
   <div class="wrap">
     <div class="hero">
       <h1>Controllable NCA Visualizer</h1>
-      <p>Arrow keys move. Space is a no-op. R resets. The right panel is highlighted red if the learned model diverges from the deterministic reference.</p>
+      <p>Arrow keys queue moves. Space queues a no-op. The simulation advances on a fixed clock, so terminal exit-fill spread continues even when you stop pressing keys. R resets. The right panel is highlighted red if the learned model diverges from the deterministic reference.</p>
     </div>
     <div id="status" class="status">Loading...</div>
     <div class="boards">
@@ -132,14 +132,19 @@ HTML_PAGE = """<!doctype html>
       <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> move,
       <kbd>Space</kbd> no-op,
       <kbd>R</kbd> reset.
+      Fixed tick: <span id="tick-ms"></span> ms.
     </div>
   </div>
   <script>
     const statusEl = document.getElementById("status");
     const refGrid = document.getElementById("reference-grid");
     const modelGrid = document.getElementById("model-grid");
+    const tickMsEl = document.getElementById("tick-ms");
     let latestVersion = -1;
     let requestQueue = Promise.resolve();
+    const pendingActions = [];
+    const tickMs = __TICK_MS__;
+    let clockStarted = false;
 
     function drawGrid(target, state, mismatch) {
       const blocked = new Set((state.blocked || []).map(([row, col]) => `${row},${col}`));
@@ -176,7 +181,7 @@ HTML_PAGE = """<!doctype html>
       drawGrid(refGrid, data.reference, false);
       drawGrid(modelGrid, data.model, !data.match);
       statusEl.textContent =
-        `version=${data.version} | last_action=${data.last_action} | reference=(${data.reference.row}, ${data.reference.col}, terminated=${data.reference.terminated}) | model=(${data.model.row}, ${data.model.col}, terminated=${data.model.terminated}) | match=${data.match ? "yes" : "no"}`;
+        `tick_ms=${tickMs} | version=${data.version} | last_action=${data.last_action} | queued_actions=${pendingActions.length} | reference=(${data.reference.row}, ${data.reference.col}, terminated=${data.reference.terminated}) | model=(${data.model.row}, ${data.model.col}, terminated=${data.model.terminated}) | match=${data.match ? "yes" : "no"}`;
     }
 
     function enqueueRequest(path, options = {}) {
@@ -193,6 +198,27 @@ HTML_PAGE = """<!doctype html>
       return requestQueue;
     }
 
+    function sleep(ms) {
+      return new Promise((resolve) => window.setTimeout(resolve, ms));
+    }
+
+    function nextAction() {
+      return pendingActions.length > 0 ? pendingActions.shift() : "none";
+    }
+
+    async function runClock() {
+      if (clockStarted) {
+        return;
+      }
+      clockStarted = true;
+      while (true) {
+        const startedAt = performance.now();
+        await enqueueRequest(`/step?action=${nextAction()}`, { method: "POST" });
+        const elapsedMs = performance.now() - startedAt;
+        await sleep(Math.max(0, tickMs - elapsedMs));
+      }
+    }
+
     const keyToAction = {
       ArrowUp: "up",
       ArrowDown: "down",
@@ -204,6 +230,7 @@ HTML_PAGE = """<!doctype html>
     window.addEventListener("keydown", async (event) => {
       if (event.key === "r" || event.key === "R") {
         event.preventDefault();
+        pendingActions.length = 0;
         await enqueueRequest("/reset", { method: "POST" });
         return;
       }
@@ -212,22 +239,27 @@ HTML_PAGE = """<!doctype html>
         return;
       }
       event.preventDefault();
-      await enqueueRequest(`/step?action=${action}`, { method: "POST" });
+      pendingActions.push(action);
     });
 
-    enqueueRequest("/state");
+    tickMsEl.textContent = String(tickMs);
+    enqueueRequest("/state").then(() => runClock());
   </script>
 </body>
 </html>
 """
 
 
-def make_handler(session: InteractiveCompareSession) -> type[BaseHTTPRequestHandler]:
+def build_html_page(tick_ms: int) -> str:
+    return HTML_TEMPLATE.replace("__TICK_MS__", str(tick_ms))
+
+
+def make_handler(session: InteractiveCompareSession, *, tick_ms: int) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:  # noqa: N802
             parsed = urlparse(self.path)
             if parsed.path == "/":
-                self._send_html(HTML_PAGE)
+                self._send_html(build_html_page(tick_ms))
                 return
             if parsed.path == "/state":
                 self._send_json(session.snapshot())
@@ -284,6 +316,7 @@ def main(
     maze_seed: int | None = typer.Option(None, help="Generate and visualize a maze using this seed."),
     host: str = typer.Option("127.0.0.1"),
     port: int = typer.Option(8000, min=1, max=65535),
+    tick_ms: int = typer.Option(120, min=1, help="Fixed simulation tick interval in milliseconds."),
     device: str = typer.Option("auto"),
 ) -> None:
     _model, config, _resolved = load_checkpoint(checkpoint, device="cpu")
@@ -316,9 +349,9 @@ def main(
         device=device,
         reset_factory=reset_factory,
     )
-    server = HTTPServer((host, port), make_handler(session))
+    server = HTTPServer((host, port), make_handler(session, tick_ms=tick_ms))
     typer.echo(f"Visualizer running at http://{host}:{port}")
-    typer.echo("Open that URL in your browser. Use arrow keys, Space, and R in the page.")
+    typer.echo(f"Open that URL in your browser. Fixed tick={tick_ms} ms. Use arrow keys, Space, and R in the page.")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
