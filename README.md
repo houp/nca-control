@@ -106,6 +106,12 @@ Step 24 now establishes:
 - non-silent CLI training output with per-epoch loss and speed
 - an MPS-vs-CPU throughput investigation showing that MPS loses on tiny `9x9` workloads but reaches parity on larger `30x30` runs
 
+Step 25 now establishes:
+
+- a parallel MLX backend for Apple Silicon without removing the PyTorch implementation
+- torch-to-MLX parity checks plus native MLX training/evaluation scripts
+- a measured three-way runtime comparison across PyTorch CPU, PyTorch MPS, and MLX
+
 ## Commands
 
 Train a one-step model:
@@ -140,6 +146,12 @@ Train the currently selected minimal exact model:
 .venv/bin/python scripts/train_one_step.py --task maze_exit --output-dir runs/sweep_h32_p3_u1 --height 9 --width 9 --num-mazes 16 --eval-num-mazes 4 --epochs 150 --batch-size 64 --hidden-channels 32 --perception-kernel-size 3 --update-kernel-size 1
 ```
 
+Train the same recipe with MLX:
+
+```bash
+.venv/bin/python scripts/train_mlx_one_step.py --task maze_exit --output-dir runs/mlx_h32_p3_u1 --height 9 --width 9 --num-mazes 16 --eval-num-mazes 4 --epochs 150 --batch-size 64 --hidden-channels 32 --perception-kernel-size 3 --update-kernel-size 1
+```
+
 Evaluate a checkpoint:
 
 ```bash
@@ -156,6 +168,13 @@ Evaluate cross-grid rollout generalization on a different maze size:
 
 ```bash
 .venv/bin/python scripts/evaluate_generalization.py --checkpoint runs/maze-exit9/checkpoint.pt --height 30 --width 30 --num-sequences 64 --steps-per-sequence 200
+```
+
+Evaluate an MLX checkpoint:
+
+```bash
+.venv/bin/python scripts/evaluate_mlx_one_step.py --checkpoint runs/mlx_h32_p3_u1/checkpoint_mlx
+.venv/bin/python scripts/evaluate_mlx_generalization.py --checkpoint runs/mlx_h32_p3_u1/checkpoint_mlx --height 30 --width 30 --num-sequences 16 --steps-per-sequence 50
 ```
 
 Infer one step from a chosen state/action:

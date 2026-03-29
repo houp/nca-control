@@ -2,7 +2,7 @@
 
 ## Step ID
 
-25
+26
 
 ## Title
 
@@ -29,3 +29,5 @@ Step 23 recorded the first MPS replication check. The selected `32/3/1` architec
 Environment note: PyTorch MPS is available on this machine when checked outside the Codex sandbox. In-sandbox checks report `False`, so GPU-sensitive verification may require unsandboxed execution.
 
 Step 24 delivered training progress artifacts and a device-throughput investigation instead. That clarified that the current MPS path is not fundamentally broken: it is slower than CPU on tiny `9x9` workloads, but reaches rough parity on `30x30` once the convolution workload is large enough. The reproducibility-hardening work remains pending.
+
+Step 25 delivered an MLX backend instead. That result materially changes the Apple Silicon recommendation: on the current `9x9` best-model workload, MLX was much faster than both PyTorch CPU and PyTorch MPS while still reaching exact one-step and rollout behavior. The pending MPS hardening work is now lower priority than deciding whether MLX should become the default training backend on Apple machines.

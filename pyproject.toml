@@ -5,6 +5,7 @@ description = "Stepwise research experiment for controllable neural cellular aut
 readme = "README.md"
 requires-python = ">=3.13,<3.14"
 dependencies = [
+  "mlx",
   "numpy",
   "torch",
   "typer",
