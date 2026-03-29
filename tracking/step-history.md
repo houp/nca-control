@@ -18,4 +18,5 @@
 | 14 | Maze-aware visualizer update | Completed | `pytest: 40 passed`; interactive tests passed; unsandboxed maze visualizer startup re-verified at `http://127.0.0.1:8767` | `step-14: update visualizer for maze walls` |
 | 15 | Training throughput optimization | Completed | `pytest: 40 passed`; short `30x30` MPS benchmark reported `2207.78 samples/s` and `28.336 s` total train time for `16` mazes over `2` epochs | `step-15: optimize training throughput` |
 | 16 | Deterministic exit semantics and generator endpoints | Completed | `pytest tests/test_grid.py tests/test_maze.py`: `13 passed`; exit termination, action lockout, fill spread, and maze start/exit placement verified | `step-16: add deterministic maze exit semantics` |
-| 17 | Maze exit-aware training and evaluation | In progress | Pending | Pending |
+| 17 | Exit-aware visualizer reset and terminal rendering | Completed | `pytest: 44 passed`; `tests/test_interactive.py: 7 passed`; `python -m py_compile scripts/interactive_compare.py` passed | `step-17: harden exit-aware browser session` |
+| 18 | Maze exit-aware training and evaluation | In progress | Pending | Pending |

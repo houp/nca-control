@@ -49,3 +49,10 @@ Extend the controllable-cell experiment into a simple maze-control task.
 ### Step 4
 
 - update the browser visualizer to draw walls and player state correctly
+- regenerate a fresh solvable maze on every visualizer reset
+- surface terminal-state rendering and exit-fill spread in the browser comparison app
+
+### Step 5
+
+- extend the learned state with exit dynamics
+- train and evaluate the NCA on terminal lockout and end-state spread

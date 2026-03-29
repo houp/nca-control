@@ -28,6 +28,7 @@ HTML_PAGE = """<!doctype html>
       --panel: #fffaf1;
       --grid: #d5c7b2;
       --active: #0c8a47;
+      --exit: #d8a106;
       --mismatch: #bf1e2e;
       --text: #1f2933;
     }
@@ -142,6 +143,7 @@ HTML_PAGE = """<!doctype html>
 
     function drawGrid(target, state, mismatch) {
       const blocked = new Set((state.blocked || []).map(([row, col]) => `${row},${col}`));
+      const exitFill = new Set((state.exit_fill || []).map(([row, col]) => `${row},${col}`));
       target.style.gridTemplateColumns = `repeat(${state.width}, minmax(0, 1fr))`;
       target.innerHTML = "";
       for (let row = 0; row < state.height; row += 1) {
@@ -151,8 +153,11 @@ HTML_PAGE = """<!doctype html>
           if (blocked.has(`${row},${col}`)) {
             cell.style.background = "#2f3a45";
             cell.style.borderColor = "#20262d";
+          } else if (exitFill.has(`${row},${col}`)) {
+            cell.style.background = "var(--exit)";
+            cell.style.borderColor = "#8c6608";
           }
-          if (row === state.row && col === state.col) {
+          if (!state.terminated && row === state.row && col === state.col) {
             cell.classList.add("active");
             if (mismatch) {
               cell.classList.add("mismatch");
@@ -171,7 +176,7 @@ HTML_PAGE = """<!doctype html>
       drawGrid(refGrid, data.reference, false);
       drawGrid(modelGrid, data.model, !data.match);
       statusEl.textContent =
-        `version=${data.version} | last_action=${data.last_action} | reference=(${data.reference.row}, ${data.reference.col}) | model=(${data.model.row}, ${data.model.col}) | match=${data.match ? "yes" : "no"}`;
+        `version=${data.version} | last_action=${data.last_action} | reference=(${data.reference.row}, ${data.reference.col}, terminated=${data.reference.terminated}) | model=(${data.model.row}, ${data.model.col}, terminated=${data.model.terminated}) | match=${data.match ? "yes" : "no"}`;
     }
 
     function enqueueRequest(path, options = {}) {
@@ -287,21 +292,29 @@ def main(
         effective_maze_seed = int(config.get("maze_seed", 0))
 
     if effective_maze_seed is not None:
-        layout = generate_maze(height=height, width=width, seed=effective_maze_seed)
-        if row is not None and col is not None and (row, col) not in layout.blocked:
-            start_row, start_col = row, col
-        else:
-            start_row, start_col = layout.open_cells()[0]
-        initial_state = layout.to_grid_state(row=start_row, col=start_col, value=value)
+        reset_counter = {"value": 0}
+
+        def build_maze_state() -> GridState:
+            layout = generate_maze(height=height, width=width, seed=effective_maze_seed + reset_counter["value"])
+            reset_counter["value"] += 1
+            if row is not None and col is not None and (row, col) not in layout.blocked:
+                start_row, start_col = row, col
+                return layout.to_grid_state(row=start_row, col=start_col, value=value)
+            return layout.to_grid_state(value=value)
+
+        initial_state = build_maze_state()
+        reset_factory = build_maze_state
     else:
         start_row = row if row is not None else 0
         start_col = col if col is not None else 0
         initial_state = GridState(height=height, width=width, row=start_row, col=start_col, value=value)
+        reset_factory = None
 
     session = InteractiveCompareSession(
         checkpoint_path=str(checkpoint),
         initial_state=initial_state,
         device=device,
+        reset_factory=reset_factory,
     )
     server = HTTPServer((host, port), make_handler(session))
     typer.echo(f"Visualizer running at http://{host}:{port}")

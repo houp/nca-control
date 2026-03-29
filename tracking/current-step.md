@@ -2,7 +2,7 @@
 
 ## Step ID
 
-17
+18
 
 ## Title
 
@@ -25,6 +25,6 @@ Maze exit-aware training and evaluation
 
 ## Notes
 
-Step 16 added deterministic exit-cell semantics and updated the maze generator to produce explicit start and exit cells with a guaranteed solution path between them. The next slice teaches the NCA about the exit state.
+Step 17 completed the browser/session slice for exit-aware visualization: reset now regenerates a new maze, the session snapshot includes terminal and exit-fill state, and the browser renderer draws the goal-state fill correctly. The next slice teaches the NCA to model those exit dynamics directly.
 
 Environment note: PyTorch MPS is available on this machine when checked outside the Codex sandbox. In-sandbox checks report `False`, so GPU-sensitive verification may require unsandboxed execution.
