@@ -7,7 +7,7 @@ import torch
 from nca_control.actions import Action
 from nca_control.device import resolve_device
 from nca_control.grid import GridState
-from nca_control.inference import load_checkpoint, predict_next_state
+from nca_control.inference import hard_decode_grid, load_checkpoint, predict_next_state
 from nca_control.train import TrainConfig, train_one_step
 
 
@@ -58,3 +58,11 @@ def test_checkpoint_round_trip_supports_prediction(tmp_path) -> None:
     assert prediction.shape == (1, 2, 2)
     assert torch.isfinite(prediction).all()
     assert model.training is False
+
+
+def test_hard_decode_grid_returns_one_exact_active_cell() -> None:
+    grid = torch.tensor([[[0.2, 0.7], [0.05, 0.05]]], dtype=torch.float32)
+
+    decoded = hard_decode_grid(grid)
+
+    assert decoded.tolist() == [[[0.0, 1.0], [0.0, 0.0]]]

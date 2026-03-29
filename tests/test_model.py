@@ -13,6 +13,7 @@ def test_model_forward_matches_target_grid_shape() -> None:
     outputs = model(dataset.inputs[:4])
 
     assert outputs.shape == (4, 1, 3, 3)
+    assert model.perception.padding_mode == "circular"
 
 
 def test_model_outputs_are_bounded_and_finite() -> None:
@@ -24,14 +25,16 @@ def test_model_outputs_are_bounded_and_finite() -> None:
     assert torch.isfinite(outputs).all()
     assert torch.all(outputs >= 0.0)
     assert torch.all(outputs <= 1.0)
+    assert torch.allclose(outputs.sum(dim=(1, 2, 3)), torch.ones(5))
 
 
 def test_model_supports_backpropagation() -> None:
     dataset = build_transition_dataset(height=2, width=2)
     model = ControllableNCAModel()
 
-    outputs = model(dataset.inputs[:5])
-    loss = torch.nn.functional.mse_loss(outputs, dataset.targets[:5])
+    logits = model.forward_logits(dataset.inputs[:5])
+    target_indices = torch.argmax(dataset.targets[:5].view(5, -1), dim=1)
+    loss = torch.nn.functional.cross_entropy(logits.view(5, -1), target_indices)
     loss.backward()
 
     assert model.perception.weight.grad is not None

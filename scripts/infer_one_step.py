@@ -22,12 +22,14 @@ def main(
     action: Action = typer.Option(...),
     value: float = typer.Option(1.0),
     device: str = typer.Option("auto"),
+    hard_decode: bool = typer.Option(True, help="Convert the model output to one exact non-zero cell."),
 ) -> None:
     prediction = predict_next_state(
         checkpoint,
         GridState(height=height, width=width, row=row, col=col, value=value),
         action,
         device=device,
+        hard_decode=hard_decode,
     )
     flat_index = int(torch.argmax(prediction[0]).item())
     pred_row = flat_index // width

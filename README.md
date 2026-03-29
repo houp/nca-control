@@ -57,7 +57,13 @@ Step 6 now establishes:
 - full-dataset checkpoint evaluation
 - quantitative evidence that the initial model/loss is not yet exact enough
 
-Training quality improvements and interactive visualization follow after that.
+Step 7 now establishes:
+
+- an exactness-oriented training objective
+- periodic-boundary-aware model perception
+- a trained 6x6 checkpoint reaching `100%` one-step argmax accuracy in evaluation
+
+Interactive visualization follows after that.
 
 ## Planned Stack
 

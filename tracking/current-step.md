@@ -2,28 +2,29 @@
 
 ## Step ID
 
-7
+8
 
 ## Title
 
-Exactness-oriented model and loss refinement
+Interactive visual verification app
 
 ## Scope
 
-- improve the model and/or training objective for exact single-cell control
-- bias the output toward one active location with preserved value
-- re-evaluate after training
-- keep the changes narrowly targeted at correctness
+- add a keyboard-driven visualizer for the learned model
+- show the deterministic reference and learned model side by side
+- keep the app simple and local so it can be run directly on macOS
+- add tests for non-UI control logic where practical
 
 ## Exit Criteria
 
-- refined training/evaluation improves next-state exactness materially
-- automated tests cover the changed model or decoding behavior
+- a local interactive app can be launched
+- arrow keys and no-op controls update the grids
+- the app helps verify learned vs reference behavior visually
 - step is logged in `tracking/step-history.md`
 - local git commit is created
 
 ## Notes
 
-Step 6 showed that the initial one-step setup is not sufficient: on a `6x6` training/evaluation run, argmax accuracy reached only about `86.7%`, with a mean predicted peak around `0.42`. Step 7 will respond to that evidence directly.
+Step 7 delivered a materially improved model: on the same `6x6`, `100`-epoch evaluation used in Step 6, the refined setup reached `argmax_accuracy=1.0`, `mse~=7.9e-7`, and `mean_predicted_max~=0.995`. Step 8 will expose that behavior through an interactive visual tool.
 
 Environment note: PyTorch MPS is available on this machine when checked outside the Codex sandbox. In-sandbox checks report `False`, so GPU-sensitive verification may require unsandboxed execution.

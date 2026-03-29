@@ -23,6 +23,7 @@ class ControllableNCAModel(nn.Module):
             hidden_channels,
             kernel_size=3,
             padding=1,
+            padding_mode="circular",
             bias=True,
         )
         self.update = nn.Sequential(
@@ -32,13 +33,17 @@ class ControllableNCAModel(nn.Module):
             nn.Conv2d(hidden_channels, state_channels, kernel_size=1, bias=True),
         )
 
-    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+    def forward_logits(self, inputs: torch.Tensor) -> torch.Tensor:
         if inputs.ndim != 4:
             raise ValueError("inputs must have shape [batch, channels, height, width]")
         if inputs.shape[1] < self.state_channels:
             raise ValueError("inputs do not contain enough state channels")
 
-        current_state = inputs[:, : self.state_channels]
         features = self.perception(inputs)
-        delta = self.update(features)
-        return torch.sigmoid(current_state + delta) * self.cell_value_max
+        return self.update(features)
+
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        logits = self.forward_logits(inputs)
+        batch, channels, height, width = logits.shape
+        normalized = torch.softmax(logits.view(batch, channels, height * width), dim=-1)
+        return normalized.view(batch, channels, height, width) * self.cell_value_max

@@ -5,7 +5,6 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 import torch
-from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
 
 from .dataset import TransitionDataset, build_transition_dataset
@@ -44,7 +43,6 @@ def train_one_step(config: TrainConfig, output_dir: str | Path) -> dict[str, obj
     ).to(device)
     dataloader = _make_dataloader(dataset, config.batch_size)
     optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
-    criterion = nn.MSELoss()
 
     losses: list[float] = []
     for _ in range(config.epochs):
@@ -55,8 +53,9 @@ def train_one_step(config: TrainConfig, output_dir: str | Path) -> dict[str, obj
             batch_targets = batch_targets.to(device)
 
             optimizer.zero_grad(set_to_none=True)
-            predictions = model(batch_inputs)
-            loss = criterion(predictions, batch_targets)
+            logits = model.forward_logits(batch_inputs)
+            target_indices = torch.argmax(batch_targets.view(batch_targets.shape[0], -1), dim=1)
+            loss = torch.nn.functional.cross_entropy(logits.view(logits.shape[0], -1), target_indices)
             loss.backward()
             optimizer.step()
 

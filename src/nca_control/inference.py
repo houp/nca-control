@@ -32,9 +32,26 @@ def predict_next_state(
     state: GridState,
     action: Action,
     device: str = "auto",
+    hard_decode: bool = True,
 ) -> torch.Tensor:
     model, _config, resolved_device = load_checkpoint(checkpoint_path, device=device)
     model_input = encode_control_input(state, action, device=resolved_device).unsqueeze(0)
     with torch.no_grad():
         prediction = model(model_input)
-    return prediction.squeeze(0).cpu()
+    prediction = prediction.squeeze(0).cpu()
+    if hard_decode:
+        return hard_decode_grid(prediction)
+    return prediction
+
+
+def hard_decode_grid(grid: torch.Tensor) -> torch.Tensor:
+    if grid.ndim != 3 or grid.shape[0] != 1:
+        raise ValueError("grid must have shape [1, height, width]")
+    value = float(grid.sum().item())
+    decoded = torch.zeros_like(grid)
+    flat_index = int(torch.argmax(grid[0]).item())
+    width = grid.shape[-1]
+    row = flat_index // width
+    col = flat_index % width
+    decoded[0, row, col] = value
+    return decoded
