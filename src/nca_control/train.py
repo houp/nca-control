@@ -9,7 +9,14 @@ from pathlib import Path
 import torch
 from torch.utils.data import Dataset, TensorDataset
 
-from .dataset import MazeTransitionDataset, TransitionDataset, build_maze_transition_dataset, build_transition_dataset
+from .dataset import (
+    MazeExitTransitionDataset,
+    MazeTransitionDataset,
+    TransitionDataset,
+    build_maze_exit_transition_dataset,
+    build_maze_transition_dataset,
+    build_transition_dataset,
+)
 from .device import resolve_device
 from .model import ControllableNCAModel
 
@@ -39,8 +46,10 @@ def train_one_step(config: TrainConfig, output_dir: str | Path) -> dict[str, obj
 
     device = resolve_device(config.device)
     dataset, num_samples, input_channels = _build_training_dataset(config)
+    state_channels = _task_state_channels(config.task)
     model = ControllableNCAModel(
         input_channels=input_channels,
+        state_channels=state_channels,
         hidden_channels=config.hidden_channels,
         cell_value_max=config.value,
     ).to(device)
@@ -58,11 +67,11 @@ def train_one_step(config: TrainConfig, output_dir: str | Path) -> dict[str, obj
         for batch_inputs, batch_targets in _iterate_training_batches(dataset, config.batch_size, device, config.seed + len(losses)):
             if device.type in {"mps", "cuda"}:
                 batch_inputs = batch_inputs.contiguous(memory_format=torch.channels_last)
+                batch_targets = batch_targets.contiguous(memory_format=torch.channels_last)
 
             optimizer.zero_grad(set_to_none=True)
             logits = model.forward_logits(batch_inputs)
-            target_indices = torch.argmax(batch_targets.view(batch_targets.shape[0], -1), dim=1)
-            loss = torch.nn.functional.cross_entropy(logits.view(logits.shape[0], -1), target_indices)
+            loss = _compute_loss(logits, batch_targets, config.task)
             loss.backward()
             optimizer.step()
 
@@ -80,7 +89,11 @@ def train_one_step(config: TrainConfig, output_dir: str | Path) -> dict[str, obj
     torch.save(
         {
             "model_state_dict": model.state_dict(),
-            "config": {**asdict(config), "input_channels": input_channels},
+            "config": {
+                **asdict(config),
+                "input_channels": input_channels,
+                "state_channels": state_channels,
+            },
             "final_loss": losses[-1],
             "loss_history": losses,
         },
@@ -104,6 +117,16 @@ def train_one_step(config: TrainConfig, output_dir: str | Path) -> dict[str, obj
 
 
 def _build_training_dataset(config: TrainConfig) -> tuple[Dataset[tuple[torch.Tensor, torch.Tensor]], int, int]:
+    if config.task == "maze_exit":
+        maze_dataset = build_maze_exit_transition_dataset(
+            height=config.height,
+            width=config.width,
+            num_mazes=config.num_mazes,
+            seed=config.maze_seed,
+            value=config.value,
+        )
+        sample_input, _sample_target = maze_dataset[0]
+        return maze_dataset, len(maze_dataset), int(sample_input.shape[0])
     if config.task == "maze":
         maze_dataset = build_maze_transition_dataset(
             height=config.height,
@@ -132,7 +155,7 @@ def _iterate_training_batches(
     device: torch.device,
     seed: int,
 ) -> Iterator[tuple[torch.Tensor, torch.Tensor]]:
-    if isinstance(dataset, MazeTransitionDataset):
+    if isinstance(dataset, MazeTransitionDataset | MazeExitTransitionDataset):
         generator = torch.Generator(device="cpu")
         generator.manual_seed(seed)
         permutation = torch.randperm(len(dataset), generator=generator)
@@ -152,3 +175,38 @@ def _iterate_training_batches(
         return
 
     raise TypeError(f"unsupported dataset type: {type(dataset)!r}")
+
+
+def _task_state_channels(task: str) -> int:
+    if task == "maze_exit":
+        return 2
+    return 1
+
+
+def _compute_loss(logits: torch.Tensor, targets: torch.Tensor, task: str) -> torch.Tensor:
+    if task != "maze_exit":
+        target_indices = torch.argmax(targets.view(targets.shape[0], -1), dim=1)
+        return torch.nn.functional.cross_entropy(logits.view(logits.shape[0], -1), target_indices)
+
+    active_logits = logits[:, 0, :, :]
+    exit_logits = logits[:, 1, :, :]
+    active_targets = targets[:, 0, :, :]
+    exit_targets = targets[:, 1, :, :]
+    spatial_size = active_logits.shape[-2] * active_logits.shape[-1]
+    active_pos_weight = torch.tensor(float(spatial_size), device=logits.device)
+    exit_pos_weight = torch.tensor(4.0, device=logits.device)
+
+    active_loss = torch.nn.functional.binary_cross_entropy_with_logits(
+        active_logits,
+        active_targets,
+        pos_weight=active_pos_weight,
+    )
+    exit_loss = torch.nn.functional.binary_cross_entropy_with_logits(
+        exit_logits,
+        exit_targets,
+        pos_weight=exit_pos_weight,
+    )
+    active_counts = torch.sigmoid(active_logits).sum(dim=(1, 2))
+    target_counts = active_targets.sum(dim=(1, 2))
+    count_loss = torch.nn.functional.mse_loss(active_counts, target_counts)
+    return active_loss + exit_loss + count_loss

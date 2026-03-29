@@ -288,7 +288,7 @@ def main(
 ) -> None:
     _model, config, _resolved = load_checkpoint(checkpoint, device="cpu")
     effective_maze_seed = maze_seed
-    if effective_maze_seed is None and str(config.get("task", "plain")) == "maze":
+    if effective_maze_seed is None and str(config.get("task", "plain")) in {"maze", "maze_exit"}:
         effective_maze_seed = int(config.get("maze_seed", 0))
 
     if effective_maze_seed is not None:

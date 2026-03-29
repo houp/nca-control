@@ -31,14 +31,25 @@ def main(
         device=device,
         hard_decode=hard_decode,
     )
-    flat_index = int(torch.argmax(prediction[0]).item())
-    pred_row = flat_index // width
-    pred_col = flat_index % width
+    if prediction.shape[0] == 1:
+        flat_index = int(torch.argmax(prediction[0]).item())
+        pred_row = flat_index // width
+        pred_col = flat_index % width
+        typer.echo(f"predicted_row={pred_row}")
+        typer.echo(f"predicted_col={pred_col}")
+        typer.echo(f"predicted_max={prediction[0, pred_row, pred_col].item():.6f}")
+        for rendered_row in prediction[0]:
+            typer.echo(" ".join(f"{cell.item():0.4f}" for cell in rendered_row))
+        return
 
-    typer.echo(f"predicted_row={pred_row}")
-    typer.echo(f"predicted_col={pred_col}")
-    typer.echo(f"predicted_max={prediction[0, pred_row, pred_col].item():.6f}")
+    active_max = float(prediction[0].max().item())
+    terminated = active_max == 0.0
+    typer.echo(f"terminated={str(terminated).lower()}")
+    typer.echo("active_channel:")
     for rendered_row in prediction[0]:
+        typer.echo(" ".join(f"{cell.item():0.4f}" for cell in rendered_row))
+    typer.echo("exit_fill_channel:")
+    for rendered_row in prediction[1]:
         typer.echo(" ".join(f"{cell.item():0.4f}" for cell in rendered_row))
 
 

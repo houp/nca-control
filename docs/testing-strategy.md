@@ -50,6 +50,15 @@ These tests will validate:
 - long-horizon persistence
 - exact or near-exact control accuracy metrics
 
+## 6. Maze exit dynamics
+
+These tests validate:
+
+- explicit exit-cell encoding in datasets and inference inputs
+- terminal lockout after the player reaches the exit
+- gradual exit-color spread over future steps
+- browser-session reset generating a fresh solvable maze
+
 ## Verification Standard
 
 Each implementation step should include:
@@ -57,4 +66,3 @@ Each implementation step should include:
 1. unit tests for the new behavior
 2. a local verification command
 3. a documented result in tracking files before commit
-

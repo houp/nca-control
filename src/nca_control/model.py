@@ -44,6 +44,8 @@ class ControllableNCAModel(nn.Module):
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         logits = self.forward_logits(inputs)
-        batch, channels, height, width = logits.shape
-        normalized = torch.softmax(logits.view(batch, channels, height * width), dim=-1)
-        return normalized.view(batch, channels, height, width) * self.cell_value_max
+        if self.state_channels == 1:
+            batch, channels, height, width = logits.shape
+            normalized = torch.softmax(logits.view(batch, channels, height * width), dim=-1)
+            return normalized.view(batch, channels, height, width) * self.cell_value_max
+        return torch.sigmoid(logits) * self.cell_value_max

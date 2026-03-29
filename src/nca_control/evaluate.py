@@ -4,9 +4,19 @@ from pathlib import Path
 
 import torch
 
+from .actions import Action
 from .dataset import ACTION_ORDER
-from .dataset import MazeTransitionDataset, TransitionDataset, build_maze_transition_dataset, build_transition_dataset
-from .inference import load_checkpoint
+from .dataset import (
+    MazeExitTransitionDataset,
+    MazeTransitionDataset,
+    TransitionDataset,
+    build_maze_exit_transition_dataset,
+    build_maze_transition_dataset,
+    build_transition_dataset,
+    encode_control_input,
+)
+from .grid import GridState, step_grid
+from .inference import decode_prediction_state, load_checkpoint
 from .maze import generate_maze
 
 
@@ -28,6 +38,10 @@ def evaluate_checkpoint(
     model, config, resolved_device = load_checkpoint(checkpoint_path, device=device)
     dataset = _build_evaluation_dataset(config)
     predictions, targets = _predict_dataset(model, dataset, resolved_device)
+    if predictions.shape[1] == 2:
+        if not isinstance(dataset, MazeExitTransitionDataset):
+            raise TypeError("maze_exit evaluation requires MazeExitTransitionDataset")
+        return _evaluate_exit_predictions(predictions, targets, dataset, resolved_device)
     target_positions = decode_argmax_positions(targets)
     predicted_positions = decode_argmax_positions(predictions)
     argmax_accuracy = (
@@ -55,6 +69,16 @@ def evaluate_rollout_checkpoint(
     max_reported_failures: int = 5,
 ) -> dict[str, object]:
     model, config, resolved_device = load_checkpoint(checkpoint_path, device=device)
+    if str(config.get("task", "plain")) == "maze_exit":
+        return _evaluate_exit_rollout(
+            model,
+            config,
+            resolved_device,
+            num_sequences=num_sequences,
+            steps_per_sequence=steps_per_sequence,
+            seed=seed,
+            max_reported_failures=max_reported_failures,
+        )
     height = int(config["height"])
     width = int(config["width"])
     value = float(config["value"])
@@ -173,7 +197,15 @@ def evaluate_rollout_checkpoint(
     }
 
 
-def _build_evaluation_dataset(config: dict[str, object]) -> TransitionDataset | MazeTransitionDataset:
+def _build_evaluation_dataset(config: dict[str, object]) -> TransitionDataset | MazeTransitionDataset | MazeExitTransitionDataset:
+    if config.get("task", "plain") == "maze_exit":
+        return build_maze_exit_transition_dataset(
+            height=int(config["height"]),
+            width=int(config["width"]),
+            num_mazes=int(config.get("eval_num_mazes", config.get("num_mazes", 8))),
+            seed=int(config.get("maze_seed", 0)) + int(config.get("eval_seed_offset", 10_000)),
+            value=float(config["value"]),
+        )
     if config.get("task", "plain") == "maze":
         return build_maze_transition_dataset(
             height=int(config["height"]),
@@ -192,7 +224,7 @@ def _build_evaluation_dataset(config: dict[str, object]) -> TransitionDataset | 
 
 def _predict_dataset(
     model: torch.nn.Module,
-    dataset: TransitionDataset | MazeTransitionDataset,
+    dataset: TransitionDataset | MazeTransitionDataset | MazeExitTransitionDataset,
     device: torch.device,
     batch_size: int = 256,
 ) -> tuple[torch.Tensor, torch.Tensor]:
@@ -211,3 +243,145 @@ def _predict_dataset(
             prediction_batches.append(model(batch_inputs).cpu())
             target_batches.append(batch_targets.cpu())
     return torch.cat(prediction_batches, dim=0), torch.cat(target_batches, dim=0)
+
+
+def _evaluate_exit_predictions(
+    predictions: torch.Tensor,
+    targets: torch.Tensor,
+    dataset: MazeExitTransitionDataset,
+    device: torch.device,
+) -> dict[str, float | int | str]:
+    predicted_active_present = predictions[:, 0, :, :].amax(dim=(1, 2)) >= 0.5
+    target_active_present = targets[:, 0, :, :].amax(dim=(1, 2)) >= 0.5
+    active_presence_accuracy = (
+        (predicted_active_present == target_active_present).to(torch.float32).mean().item()
+    )
+
+    active_position_accuracy = 1.0
+    active_mask = target_active_present & predicted_active_present
+    if active_mask.any():
+        predicted_positions = decode_argmax_positions(predictions[active_mask, :1, :, :])
+        target_positions = decode_argmax_positions(targets[active_mask, :1, :, :])
+        active_position_accuracy = (
+            (predicted_positions == target_positions).all(dim=1).to(torch.float32).mean().item()
+        )
+
+    predicted_exit = predictions[:, 1, :, :] >= 0.5
+    target_exit = targets[:, 1, :, :] >= 0.5
+    decoded_matches: list[bool] = []
+    decoded_exit_matches: list[bool] = []
+    decoded_termination_matches: list[bool] = []
+    for index in range(len(dataset)):
+        previous_state = dataset.state_for_index(index)
+        predicted_state = decode_prediction_state(predictions[index], previous_state)
+        target_state = decode_prediction_state(targets[index], previous_state)
+        decoded_matches.append(predicted_state == target_state)
+        decoded_exit_matches.append(predicted_state.exit_fill == target_state.exit_fill)
+        decoded_termination_matches.append(predicted_state.terminated == target_state.terminated)
+
+    exit_fill_exact_accuracy = sum(decoded_exit_matches) / len(decoded_exit_matches)
+    full_state_accuracy = sum(decoded_matches) / len(decoded_matches)
+    termination_accuracy = sum(decoded_termination_matches) / len(decoded_termination_matches)
+
+    return {
+        "device": str(device),
+        "num_samples": int(targets.shape[0]),
+        "active_presence_accuracy": active_presence_accuracy,
+        "active_position_accuracy": active_position_accuracy,
+        "termination_accuracy": termination_accuracy,
+        "exit_fill_exact_accuracy": exit_fill_exact_accuracy,
+        "full_state_accuracy": full_state_accuracy,
+        "mse": torch.nn.functional.mse_loss(predictions, targets).item(),
+    }
+
+
+def _evaluate_exit_rollout(
+    model: torch.nn.Module,
+    config: dict[str, object],
+    device: torch.device,
+    *,
+    num_sequences: int,
+    steps_per_sequence: int,
+    seed: int,
+    max_reported_failures: int,
+) -> dict[str, object]:
+    height = int(config["height"])
+    width = int(config["width"])
+    value = float(config["value"])
+    maze_seed = int(config.get("maze_seed", 0))
+    generator = torch.Generator(device="cpu")
+    generator.manual_seed(seed)
+
+    reference_states: list[GridState] = []
+    model_states: list[GridState] = []
+    for index in range(num_sequences):
+        layout = generate_maze(height=height, width=width, seed=maze_seed + seed + index)
+        open_cells = [cell for cell in layout.open_cells() if cell != layout.exit_cell]
+        sampled_index = int(torch.randint(0, len(open_cells), (1,), generator=generator, device="cpu").item())
+        row, col = open_cells[sampled_index]
+        initial_state = layout.to_grid_state(row=row, col=col, value=value)
+        reference_states.append(initial_state)
+        model_states.append(initial_state)
+
+    failures: list[dict[str, object]] = []
+    failed_sequences: set[int] = set()
+    with torch.no_grad():
+        for step_index in range(steps_per_sequence):
+            action_indices = torch.randint(
+                0,
+                len(ACTION_ORDER),
+                (num_sequences,),
+                generator=generator,
+                device="cpu",
+            )
+            actions = [ACTION_ORDER[int(index)] for index in action_indices.tolist()]
+            reference_states = [step_grid(state, action) for state, action in zip(reference_states, actions, strict=True)]
+            batch_inputs = torch.stack(
+                [
+                    encode_control_input(state, action, device=device, include_exit_dynamics=True)
+                    for state, action in zip(model_states, actions, strict=True)
+                ],
+                dim=0,
+            )
+            predictions = model(batch_inputs).cpu()
+            model_states = [
+                decode_prediction_state(predictions[index], model_states[index])
+                for index in range(num_sequences)
+            ]
+
+            for sequence_index, (reference_state, model_state, action) in enumerate(
+                zip(reference_states, model_states, actions, strict=True)
+            ):
+                if sequence_index in failed_sequences:
+                    continue
+                if reference_state != model_state:
+                    failed_sequences.add(sequence_index)
+                    if len(failures) < max_reported_failures:
+                        failures.append(
+                            {
+                                "sequence": sequence_index,
+                                "step": step_index + 1,
+                                "action": action.value,
+                                "reference": _serialize_rollout_state(reference_state),
+                                "model": _serialize_rollout_state(model_state),
+                            }
+                        )
+
+    return {
+        "device": str(device),
+        "num_sequences": num_sequences,
+        "steps_per_sequence": steps_per_sequence,
+        "total_rollout_steps": num_sequences * steps_per_sequence,
+        "num_failed_sequences": len(failed_sequences),
+        "exact_rollout_rate": 1.0 - (len(failed_sequences) / num_sequences),
+        "first_failures": failures,
+    }
+
+
+def _serialize_rollout_state(state: GridState) -> dict[str, object]:
+    return {
+        "row": state.row,
+        "col": state.col,
+        "terminated": state.terminated,
+        "exit_fill_size": len(state.exit_fill or frozenset()),
+    }

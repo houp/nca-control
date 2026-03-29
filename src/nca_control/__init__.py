@@ -3,12 +3,15 @@
 from .actions import Action
 from .dataset import (
     ACTION_ORDER,
+    MazeExitTransitionDataset,
     MazeTransitionDataset,
     action_to_one_hot,
     blocked_to_tensor,
+    build_maze_exit_transition_dataset,
     build_maze_transition_dataset,
     build_transition_dataset,
     encode_control_input,
+    exit_fill_to_tensor,
     state_to_tensor,
 )
 from .device import resolve_device
@@ -18,7 +21,7 @@ from .evaluate import (
     evaluate_rollout_checkpoint,
 )
 from .grid import GridState, step_grid
-from .inference import load_checkpoint, predict_next_state
+from .inference import decode_prediction_state, load_checkpoint, predict_next_state
 from .interactive import action_from_keysym, prediction_to_grid_state
 from .maze import MazeLayout, generate_maze
 from .model import ControllableNCAModel
@@ -29,6 +32,7 @@ __all__ = [
     "ACTION_ORDER",
     "Action",
     "ControllableNCAModel",
+    "MazeExitTransitionDataset",
     "GridState",
     "MazeTransitionDataset",
     "MazeLayout",
@@ -36,12 +40,15 @@ __all__ = [
     "action_from_keysym",
     "action_to_one_hot",
     "blocked_to_tensor",
+    "build_maze_exit_transition_dataset",
     "build_maze_transition_dataset",
     "build_transition_dataset",
+    "decode_prediction_state",
     "decode_argmax_positions",
     "encode_control_input",
     "evaluate_checkpoint",
     "evaluate_rollout_checkpoint",
+    "exit_fill_to_tensor",
     "generate_maze",
     "load_checkpoint",
     "parse_actions",

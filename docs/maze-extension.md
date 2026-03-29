@@ -56,3 +56,8 @@ Extend the controllable-cell experiment into a simple maze-control task.
 
 - extend the learned state with exit dynamics
 - train and evaluate the NCA on terminal lockout and end-state spread
+
+## Exit-Aware Inference Note
+
+- the learned checkpoint models wall-aware control and the transition into the terminal state
+- once terminal, decoded rollout and browser playback use deterministic exit-fill expansion to keep the game semantics exact

@@ -38,6 +38,24 @@ def test_prediction_to_grid_state_selects_argmax_location() -> None:
     assert state.exit_cell == (0, 2)
 
 
+def test_prediction_to_grid_state_decodes_exit_aware_prediction() -> None:
+    prediction = torch.tensor(
+        [
+            [[0.1, 0.2, 0.3], [0.0, 0.1, 0.2]],
+            [[0.0, 0.0, 1.0], [0.0, 1.0, 0.0]],
+        ],
+        dtype=torch.float32,
+    )
+
+    state = prediction_to_grid_state(
+        prediction,
+        previous_state=GridState(height=2, width=3, row=0, col=0, value=1.0, exit_cell=(0, 2)),
+    )
+
+    assert state.terminated is True
+    assert state.exit_fill == frozenset({(0, 2), (1, 1)})
+
+
 def test_serialize_grid_state_returns_json_ready_dict() -> None:
     payload = serialize_grid_state(
         GridState(height=4, width=5, row=1, col=2, value=3.0, blocked=frozenset({(0, 0), (3, 4)}))

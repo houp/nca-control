@@ -2,29 +2,29 @@
 
 ## Step ID
 
-18
+19
 
 ## Title
 
-Maze exit-aware training and evaluation
+Maze exit scaling and MPS validation
 
 ## Scope
 
-- extend dataset encoding with exit-state information
-- train the NCA to stop control at the exit and model gradual end-state spread
-- verify one-step and rollout behavior on exit-aware mazes
+- repeat the `maze_exit` experiment on larger grids
+- validate MPS-backed training throughput for the exit-aware task
+- compare rollout exactness across grid sizes and model widths
 
 ## Exit Criteria
 
-- maze-aware training data includes exit semantics
-- trained checkpoints respect wall and exit behavior
-- automated tests cover exit-aware data and evaluation
+- at least one larger-grid `maze_exit` checkpoint is trained
+- one-step and rollout metrics are recorded for the larger-grid run
+- MPS throughput is measured outside the sandbox if needed
 - findings are captured in markdown tracking
 - step is logged in `tracking/step-history.md`
 - local git commit is created
 
 ## Notes
 
-Step 17 completed the browser/session slice for exit-aware visualization: reset now regenerates a new maze, the session snapshot includes terminal and exit-fill state, and the browser renderer draws the goal-state fill correctly. The next slice teaches the NCA to model those exit dynamics directly.
+Step 18 completed the learned exit-aware training slice. The model now learns wall-respecting control, exit detection, and terminal lockout, while decoded post-terminal fill expansion is kept deterministic to preserve exact gameplay semantics during rollout and visualization.
 
 Environment note: PyTorch MPS is available on this machine when checked outside the Codex sandbox. In-sandbox checks report `False`, so GPU-sensitive verification may require unsandboxed execution.

@@ -95,6 +95,7 @@ The next experiment variant adds three cell types:
 3. Train the NCA on generated mazes so movement respects walls.
 4. Add rollout evaluation on mazes.
 5. Update the interactive visualizer to render empty, blocked, and active cells.
+6. Add a goal-state exit cell, terminal lockout, and gradual end-state spread.
 
 ## Acceptance Criteria
 

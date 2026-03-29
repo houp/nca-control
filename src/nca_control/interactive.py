@@ -8,7 +8,7 @@ import torch
 
 from .actions import Action
 from .grid import GridState, step_grid
-from .inference import predict_next_state
+from .inference import decode_prediction_state, predict_next_state
 
 
 def action_from_keysym(keysym: str) -> Action | None:
@@ -28,19 +28,26 @@ def action_from_keysym(keysym: str) -> Action | None:
 def prediction_to_grid_state(
     prediction: torch.Tensor,
     *,
+    previous_state: GridState | None = None,
     value: float = 1.0,
     blocked: frozenset[tuple[int, int]] = frozenset(),
     exit_cell: tuple[int, int] | None = None,
     exit_fill: frozenset[tuple[int, int]] | None = None,
     terminated: bool = False,
 ) -> GridState:
+    if prediction.ndim != 3:
+        raise ValueError("prediction must have shape [channels, height, width]")
+    if prediction.shape[0] == 2:
+        if previous_state is None:
+            raise ValueError("previous_state is required for 2-channel predictions")
+        return decode_prediction_state(prediction, previous_state)
     if prediction.ndim != 3 or prediction.shape[0] != 1:
         raise ValueError("prediction must have shape [1, height, width]")
     height, width = prediction.shape[1], prediction.shape[2]
     flat_index = int(torch.argmax(prediction[0]).item())
     row = flat_index // width
     col = flat_index % width
-    return GridState(
+    next_state = GridState(
         height=height,
         width=width,
         row=row,
@@ -51,6 +58,19 @@ def prediction_to_grid_state(
         exit_fill=exit_fill,
         terminated=terminated,
     )
+    if previous_state is not None and next_state.exit_cell is not None and (next_state.row, next_state.col) == next_state.exit_cell:
+        return GridState(
+            height=next_state.height,
+            width=next_state.width,
+            row=next_state.row,
+            col=next_state.col,
+            value=next_state.value,
+            blocked=next_state.blocked,
+            exit_cell=next_state.exit_cell,
+            exit_fill=next_state.exit_fill,
+            terminated=True,
+        )
+    return next_state
 
 
 @dataclass(slots=True)
@@ -86,36 +106,21 @@ class InteractiveCompareSession:
         with self._lock:
             self.last_action = action
             self.reference_state = step_grid(self.reference_state, action)
-            if self.model_state.terminated:
-                self.model_state = step_grid(self.model_state, action)
-            else:
-                prediction = predict_next_state(
-                    self.checkpoint_path,
-                    self.model_state,
-                    action,
-                    device=self.device,
-                    hard_decode=True,
-                )
-                predicted_state = prediction_to_grid_state(
-                    prediction,
-                    value=self.model_state.value,
-                    blocked=self.model_state.blocked,
-                    exit_cell=self.model_state.exit_cell,
-                    exit_fill=self.model_state.exit_fill,
-                )
-                if predicted_state.exit_cell is not None and (predicted_state.row, predicted_state.col) == predicted_state.exit_cell:
-                    predicted_state = GridState(
-                        height=predicted_state.height,
-                        width=predicted_state.width,
-                        row=predicted_state.row,
-                        col=predicted_state.col,
-                        value=predicted_state.value,
-                        blocked=predicted_state.blocked,
-                        exit_cell=predicted_state.exit_cell,
-                        exit_fill=predicted_state.exit_fill,
-                        terminated=True,
-                    )
-                self.model_state = predicted_state
+            prediction = predict_next_state(
+                self.checkpoint_path,
+                self.model_state,
+                action,
+                device=self.device,
+                hard_decode=True,
+            )
+            self.model_state = prediction_to_grid_state(
+                prediction,
+                previous_state=self.model_state,
+                value=self.model_state.value,
+                blocked=self.model_state.blocked,
+                exit_cell=self.model_state.exit_cell,
+                exit_fill=self.model_state.exit_fill,
+            )
             self.version += 1
             return self._snapshot_unlocked()
 

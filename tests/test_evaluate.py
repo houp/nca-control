@@ -53,3 +53,26 @@ def test_evaluate_checkpoint_supports_maze_task(tmp_path) -> None:
 
     assert metrics["num_samples"] > 0
     assert 0.0 <= metrics["argmax_accuracy"] <= 1.0
+
+
+def test_evaluate_checkpoint_supports_maze_exit_task(tmp_path) -> None:
+    result = train_one_step(
+        TrainConfig(
+            task="maze_exit",
+            height=9,
+            width=9,
+            num_mazes=2,
+            eval_num_mazes=1,
+            epochs=1,
+            batch_size=16,
+            hidden_channels=8,
+            device="cpu",
+        ),
+        output_dir=tmp_path,
+    )
+
+    metrics = evaluate_checkpoint(result["checkpoint_path"], device="cpu")
+
+    assert metrics["num_samples"] > 0
+    assert 0.0 <= metrics["active_presence_accuracy"] <= 1.0
+    assert 0.0 <= metrics["exit_fill_exact_accuracy"] <= 1.0

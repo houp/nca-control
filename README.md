@@ -79,6 +79,22 @@ Step 13 now establishes:
 - maze-generated supervised training data
 - an exact maze-control checkpoint on generated mazes
 
+Step 16 now establishes:
+
+- deterministic maze exit semantics
+- guaranteed solvable mazes with explicit start and exit cells
+
+Step 17 now establishes:
+
+- exit-aware browser/session rendering
+- maze regeneration on every visualizer reset
+
+Step 18 now establishes:
+
+- an exit-aware maze training task with terminal lockout
+- one-step and rollout evaluation for the learned exit-aware checkpoint
+- exact decoded gameplay semantics on the verified smoke checkpoint
+
 ## Commands
 
 Train a one-step model:
@@ -91,6 +107,12 @@ Train a maze-aware model:
 
 ```bash
 .venv/bin/python scripts/train_one_step.py --task maze --output-dir runs/maze9 --height 9 --width 9 --num-mazes 32 --eval-num-mazes 8 --epochs 50
+```
+
+Train an exit-aware maze model:
+
+```bash
+.venv/bin/python scripts/train_one_step.py --task maze_exit --output-dir runs/maze-exit9 --height 9 --width 9 --num-mazes 32 --eval-num-mazes 8 --epochs 50
 ```
 
 Evaluate a checkpoint:
@@ -123,6 +145,12 @@ For the maze checkpoint, the visualizer automatically uses the maze seed stored 
 
 ```bash
 .venv/bin/python scripts/interactive_compare.py --checkpoint runs/maze9/checkpoint.pt --height 9 --width 9 --port 8767
+```
+
+The same applies to exit-aware maze checkpoints. On reset, the browser app generates a fresh solvable maze:
+
+```bash
+.venv/bin/python scripts/interactive_compare.py --checkpoint runs/maze-exit9/checkpoint.pt --height 9 --width 9 --port 8768
 ```
 
 ## Planned Stack

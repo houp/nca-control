@@ -7,9 +7,11 @@ from nca_control.dataset import (
     ACTION_ORDER,
     action_to_one_hot,
     blocked_to_tensor,
+    build_maze_exit_transition_dataset,
     build_maze_transition_dataset,
     build_transition_dataset,
     encode_control_input,
+    exit_fill_to_tensor,
     state_to_tensor,
 )
 from nca_control.grid import GridState
@@ -89,3 +91,49 @@ def test_build_maze_transition_dataset_respects_walls() -> None:
     assert sample_inputs.shape[0] == 7
     assert sample_target.shape == (1, 9, 9)
     assert torch.isfinite(sample_inputs).all()
+
+
+def test_exit_fill_to_tensor_encodes_exit_state_cells() -> None:
+    grid = exit_fill_to_tensor(
+        GridState(height=3, width=3, row=1, col=1, exit_cell=(2, 2), exit_fill=frozenset({(2, 2), (1, 2)}))
+    )
+
+    assert grid.shape == (1, 3, 3)
+    assert grid[0, 1, 2].item() == 1.0
+    assert grid[0, 2, 2].item() == 1.0
+    assert torch.count_nonzero(grid) == 2
+
+
+def test_encode_control_input_supports_exit_dynamics() -> None:
+    encoded = encode_control_input(
+        GridState(height=3, width=3, row=1, col=1, exit_cell=(2, 2)),
+        Action.RIGHT,
+        include_exit_dynamics=True,
+    )
+
+    assert encoded.shape == (8, 3, 3)
+    assert encoded[0, 1, 1].item() == 1.0
+    assert encoded[1, 2, 2].item() == 1.0
+    assert torch.count_nonzero(encoded[2]) == 0
+
+
+def test_build_maze_exit_transition_dataset_includes_terminal_examples() -> None:
+    dataset = build_maze_exit_transition_dataset(height=9, width=9, num_mazes=1, seed=0)
+
+    sample_inputs, sample_targets = dataset[0]
+    terminal_indices = torch.nonzero(dataset.examples[:, 4] == 1, as_tuple=False)
+
+    assert sample_inputs.shape[0] == 8
+    assert sample_targets.shape == (2, 9, 9)
+    assert terminal_indices.numel() > 0
+
+
+def test_maze_exit_terminal_targets_expand_exit_fill() -> None:
+    dataset = build_maze_exit_transition_dataset(height=5, width=5, num_mazes=1, seed=0)
+    terminal_index = int(torch.nonzero(dataset.examples[:, 4] == 1, as_tuple=False)[0, 0].item())
+
+    inputs, targets = dataset[terminal_index]
+
+    assert torch.count_nonzero(inputs[0]).item() == 0
+    assert torch.count_nonzero(targets[0]).item() == 0
+    assert torch.count_nonzero(targets[1]).item() >= torch.count_nonzero(inputs[1]).item()
