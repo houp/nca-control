@@ -42,6 +42,11 @@ Step 3 now establishes:
 - torch-based supervised transition dataset generation
 - explicit control-channel encoding for future NCA training
 
+Step 4 now establishes:
+
+- a minimal trainable controllable NCA model in PyTorch
+- verified forward-pass and backpropagation behavior
+
 Learned NCA training and interactive visualization follow after that.
 
 ## Planned Stack

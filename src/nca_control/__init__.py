@@ -9,11 +9,13 @@ from .dataset import (
     state_to_tensor,
 )
 from .grid import GridState, step_grid
+from .model import ControllableNCAModel
 from .simulation import parse_actions, rollout_states
 
 __all__ = [
     "ACTION_ORDER",
     "Action",
+    "ControllableNCAModel",
     "GridState",
     "action_to_one_hot",
     "build_transition_dataset",
