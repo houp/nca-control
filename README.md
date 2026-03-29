@@ -47,7 +47,12 @@ Step 4 now establishes:
 - a minimal trainable controllable NCA model in PyTorch
 - verified forward-pass and backpropagation behavior
 
-Learned NCA training and interactive visualization follow after that.
+Step 5 now establishes:
+
+- a checkpointed one-step supervised training script
+- a checkpoint-loading inference script
+
+Training quality improvements and interactive visualization follow after that.
 
 ## Planned Stack
 
