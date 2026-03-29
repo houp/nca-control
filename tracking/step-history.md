@@ -3,3 +3,5 @@
 | Step | Title | Status | Verification | Commit |
 | --- | --- | --- | --- | --- |
 | 1 | Planning, tracking, and deterministic movement baseline | Completed | `pytest: 5 passed`; `torch 2.11.0`, `MPS available=True` (unsandboxed check) | `step-1: bootstrap deterministic baseline` |
+| 2 | Text-mode simulation and CLI verification | Completed | `pytest: 9 passed`; manual CLI rollout verified with `nca-control simulate --height 2 --width 3 --row 0 --col 0 --actions right,down` | `step-2: add text simulation cli` |
+| 3 | Supervised transition data generation | In progress | Pending | Pending |

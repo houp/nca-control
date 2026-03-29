@@ -2,34 +2,29 @@
 
 ## Step ID
 
-1
+3
 
 ## Title
 
-Planning, tracking, and deterministic movement baseline
+Supervised transition data generation
 
 ## Scope
 
-- create project documentation and tracking files
-- scaffold the Python package
-- implement the deterministic reference transition rule
-- add baseline tests for movement invariants
+- generate one-step supervised examples from the deterministic baseline
+- create tensor-friendly encodings for state and action
+- add tests for dataset shapes and semantic correctness
+- keep the implementation simple enough to inspect manually
 
 ## Exit Criteria
 
-- repository documentation exists
-- deterministic movement code is implemented
-- automated tests pass
+- dataset generation works programmatically
+- generated samples preserve deterministic transition semantics
+- automated tests cover shapes and labels
 - step is logged in `tracking/step-history.md`
 - local git commit is created
 
 ## Notes
 
-This step intentionally avoids learned NCA training. The objective is to freeze the target dynamics before training infrastructure is introduced.
+Step 1 locked down movement semantics. Step 2 added text-based simulation and CLI verification. Step 3 will turn the deterministic rule into supervised training data for the first learned NCA model.
 
 Environment note: PyTorch MPS is available on this machine when checked outside the Codex sandbox. In-sandbox checks report `False`, so GPU-sensitive verification may require unsandboxed execution.
-
-## Verification
-
-- `.venv/bin/pytest` -> `5 passed`
-- `.venv/bin/python -c "import torch; print(torch.__version__); print(torch.backends.mps.is_built()); print(torch.backends.mps.is_available())"` -> `2.11.0 / True / True` when run unsandboxed

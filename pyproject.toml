@@ -10,6 +10,9 @@ dependencies = [
   "typer",
 ]
 
+[project.scripts]
+nca-control = "nca_control.cli:app"
+
 [dependency-groups]
 dev = [
   "pytest",

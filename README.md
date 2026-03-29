@@ -27,7 +27,17 @@ Step 1 establishes:
 - a deterministic reference transition engine
 - automated baseline tests for movement semantics
 
-Learned NCA training, dataset generation, and interactive visualization are planned next.
+Step 2 is in progress and adds:
+
+- scripted text-mode rollouts
+- CLI-based deterministic simulation
+
+Step 2 now establishes:
+
+- deterministic trajectory generation
+- a text-mode simulation CLI for scripted control sequences
+
+Dataset generation, learned NCA training, and interactive visualization follow after that.
 
 ## Planned Stack
 
@@ -42,4 +52,3 @@ Learned NCA training, dataset generation, and interactive visualization are plan
 - `tests/`: automated tests
 - `docs/`: planning and experiment documentation
 - `tracking/`: step tracking files
-
