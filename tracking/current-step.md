@@ -2,29 +2,28 @@
 
 ## Step ID
 
-8
+9
 
 ## Title
 
-Interactive visual verification app
+Multi-step rollout evaluation
 
 ## Scope
 
-- add a keyboard-driven visualizer for the learned model
-- show the deterministic reference and learned model side by side
-- keep the app simple and local so it can be run directly on macOS
-- add tests for non-UI control logic where practical
+- evaluate repeated control over longer horizons
+- compare learned rollout behavior against the deterministic reference
+- detect drift, duplication, or stability failures over sequences
+- keep the tooling compatible with the existing checkpoint workflow
 
 ## Exit Criteria
 
-- a local interactive app can be launched
-- arrow keys and no-op controls update the grids
-- the app helps verify learned vs reference behavior visually
+- rollout metrics exist beyond one-step evaluation
+- longer-horizon behavior can be checked automatically
 - step is logged in `tracking/step-history.md`
 - local git commit is created
 
 ## Notes
 
-Step 7 delivered a materially improved model: on the same `6x6`, `100`-epoch evaluation used in Step 6, the refined setup reached `argmax_accuracy=1.0`, `mse~=7.9e-7`, and `mean_predicted_max~=0.995`. Step 8 will expose that behavior through an interactive visual tool.
+Step 8 added a side-by-side interactive visualizer. In this headless environment I verified the non-UI control logic and script compilation, but the actual Tk window still requires a manual launch on macOS for final visual confirmation.
 
 Environment note: PyTorch MPS is available on this machine when checked outside the Codex sandbox. In-sandbox checks report `False`, so GPU-sensitive verification may require unsandboxed execution.

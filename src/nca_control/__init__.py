@@ -12,6 +12,7 @@ from .device import resolve_device
 from .evaluate import decode_argmax_positions, evaluate_checkpoint
 from .grid import GridState, step_grid
 from .inference import load_checkpoint, predict_next_state
+from .interactive import action_from_keysym, prediction_to_grid_state
 from .model import ControllableNCAModel
 from .simulation import parse_actions, rollout_states
 from .train import TrainConfig, train_one_step
@@ -22,6 +23,7 @@ __all__ = [
     "ControllableNCAModel",
     "GridState",
     "TrainConfig",
+    "action_from_keysym",
     "action_to_one_hot",
     "build_transition_dataset",
     "decode_argmax_positions",
@@ -29,6 +31,7 @@ __all__ = [
     "evaluate_checkpoint",
     "load_checkpoint",
     "parse_actions",
+    "prediction_to_grid_state",
     "predict_next_state",
     "resolve_device",
     "rollout_states",

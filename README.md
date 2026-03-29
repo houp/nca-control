@@ -63,7 +63,36 @@ Step 7 now establishes:
 - periodic-boundary-aware model perception
 - a trained 6x6 checkpoint reaching `100%` one-step argmax accuracy in evaluation
 
-Interactive visualization follows after that.
+Step 8 now establishes:
+
+- a Tk-based interactive comparison app for reference vs learned control
+- tested non-UI keyboard/control helpers for local visual verification
+
+## Commands
+
+Train a one-step model:
+
+```bash
+.venv/bin/python scripts/train_one_step.py --output-dir runs/demo --height 6 --width 6 --epochs 100
+```
+
+Evaluate a checkpoint:
+
+```bash
+.venv/bin/python scripts/evaluate_one_step.py --checkpoint runs/demo/checkpoint.pt
+```
+
+Infer one step from a chosen state/action:
+
+```bash
+.venv/bin/python scripts/infer_one_step.py --checkpoint runs/demo/checkpoint.pt --height 6 --width 6 --row 0 --col 5 --action right
+```
+
+Launch the interactive visual comparison app:
+
+```bash
+.venv/bin/python scripts/interactive_compare.py --checkpoint runs/demo/checkpoint.pt --height 6 --width 6
+```
 
 ## Planned Stack
 
