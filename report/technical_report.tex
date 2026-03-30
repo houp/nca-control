@@ -144,13 +144,15 @@ with circular padding so that the learned rule is compatible with periodic bound
 \end{figure}
 
 \subsection{Software backends}
-The repository retains both a PyTorch implementation and an MLX implementation. PyTorch remains useful for CPU execution and future CUDA-class hardware, while MLX is currently the preferred Apple Silicon backend. The implementation also includes:
+The repository retains both a PyTorch implementation and an MLX implementation. PyTorch remains useful for CPU execution and for an experimental CUDA-enabled path intended for collaborators running Linux on NVIDIA hardware, while MLX is currently the preferred Apple Silicon backend. The implementation also includes:
 \begin{itemize}
   \item a text-based simulation interface for scripted testing,
   \item one-step evaluation scripts,
   \item rollout evaluation scripts,
   \item a browser-based interactive visualizer with a fixed simulation clock.
 \end{itemize}
+
+The CUDA path was added for portability but was not tested in the present macOS study. Consequently, the verified results reported here should still be interpreted as CPU, MPS, and MLX results collected on Apple Silicon.
 
 \section{Experimental Protocol}
 The project progressed through multiple experimental phases:

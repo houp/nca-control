@@ -143,12 +143,24 @@ Step 34 now establishes:
 
 The slide source is in `report/technical_presentation.tex`.
 
+## Experimental CUDA Path
+
+PyTorch now has an experimental CUDA-enabled code path for collaborators running the project on Linux with NVIDIA GPUs. In practical terms, the existing PyTorch training and evaluation entrypoints can be used with `--device cuda`, and `--device auto` will prefer CUDA when it is available.
+
+This CUDA path is not tested in the current macOS/Apple Silicon environment and is not covered by the reported experimental results in this repository. The current verified results remain those obtained on CPU, MPS, and MLX in the recorded macOS experiments.
+
 ## Commands
 
 Train a one-step model:
 
 ```bash
 .venv/bin/python scripts/train_one_step.py --output-dir runs/demo --height 6 --width 6 --epochs 100
+```
+
+On a Linux machine with CUDA, the same PyTorch path can be invoked explicitly as:
+
+```bash
+.venv/bin/python scripts/train_one_step.py --output-dir runs/demo-cuda --height 6 --width 6 --epochs 100 --device cuda
 ```
 
 Each training run now writes live progress into:

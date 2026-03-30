@@ -2,7 +2,7 @@
 
 ## Step ID
 
-37
+38
 
 ## Title
 
@@ -24,6 +24,6 @@ Patch-Local Training Prototype
 
 ## Notes
 
-Step 36 added baseline source-code comments and stricter documentation-alignment rules in `AGENTS.md`.
+Step 37 added an experimental PyTorch CUDA code path for Linux collaborators and updated the main project documents to mark it as untested on the current macOS host.
 
 The next deferred research question is whether patch-local supervision can retain the current guarantees while reducing training cost further.

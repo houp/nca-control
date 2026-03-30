@@ -15,7 +15,25 @@ def test_resolve_device_returns_torch_device() -> None:
     device = resolve_device("auto")
 
     assert isinstance(device, torch.device)
-    assert device.type in {"cpu", "mps"}
+    assert device.type in {"cpu", "mps", "cuda"}
+
+
+def test_resolve_device_prefers_cuda_over_mps(monkeypatch) -> None:
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.backends.mps, "is_available", lambda: True)
+
+    device = resolve_device("auto")
+
+    assert device.type == "cuda"
+
+
+def test_resolve_device_uses_mps_when_cuda_is_unavailable(monkeypatch) -> None:
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    monkeypatch.setattr(torch.backends.mps, "is_available", lambda: True)
+
+    device = resolve_device("auto")
+
+    assert device.type == "mps"
 
 
 def test_train_one_step_creates_checkpoint_and_metrics(tmp_path) -> None:
