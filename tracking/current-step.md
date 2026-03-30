@@ -2,25 +2,25 @@
 
 ## Step ID
 
-43
+44
 
 ## Title
 
-Markdown Path Cleanup
+README uv Sync Simplification
 
 ## Scope
 
-- remove hard-coded user-specific absolute paths from Markdown documentation
-- keep the quick-start instructions portable across clones and machines
-- verify that the Markdown documentation set no longer contains those user-specific paths
+- remove the optional `UV_CACHE_DIR` override from the README quick-start command
+- keep the quick-start environment setup as simple as possible
+- document the default `uv` workflow rather than an implementation detail of earlier runs
 
 ## Exit Criteria
 
-- no Markdown documentation file contains user-specific absolute paths
-- the README quick-start command still communicates the intended `uv` setup clearly
+- the README quick-start setup uses plain `uv sync --python 3.14`
+- the quick-start command remains consistent with the current project target
 - tracking is updated
 - local git commit is created
 
 ## Notes
 
-The current issue is documentation portability rather than runtime behavior. Markdown docs should not embed a specific local home-directory path when a repo-relative or generic command is sufficient.
+The remaining issue is not correctness but simplicity: the quick-start command still shows an unnecessary cache override. The README should prefer the default `uv` behavior unless there is a real project-level need for something more specific.
