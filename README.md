@@ -118,6 +118,12 @@ Step 28 now establishes:
 - confirmation that `9/3/1` and `11/3/1` are not reproducible and `10/3/1` is not exact
 - exact post-selection rollout validation of the selected `12/3/1` model on `100x100` and `200x200` grids across four clean retraining seeds
 
+Step 31 now establishes:
+
+- a maintenance audit bringing README and tracking back in line with the current code base
+- a small shared-logic refactor removing duplicated action-index movement code
+- a fresh clean MLX retrain on the current code confirming the selected `12/3/1` model still reaches exact one-step behavior and exact larger-grid rollouts on a known-good seed
+
 ## Commands
 
 Train a one-step model:
