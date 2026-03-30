@@ -117,6 +117,12 @@ Step 27 now establishes:
 - a stronger MLX-based revisit of the minimal-model problem
 - a new smallest exact and reproducible `maze_exit` model at `hidden_channels=12`, `perception_kernel_size=3`, `update_kernel_size=1`
 
+Step 28 now establishes:
+
+- explicit boundary checks on `9`, `10`, and `11` hidden channels under the same strong MLX recipe
+- confirmation that `9/3/1` and `11/3/1` are not reproducible and `10/3/1` is not exact
+- exact post-selection rollout validation of the selected `12/3/1` model on `100x100` and `200x200` grids across four clean retraining seeds
+
 ## Commands
 
 Train a one-step model:

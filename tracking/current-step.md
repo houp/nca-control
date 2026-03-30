@@ -2,30 +2,33 @@
 
 ## Step ID
 
-28
+29
 
 ## Title
 
-Extended MLX minimal-model validation
+Patch-local training prototype review
 
 ## Scope
 
-- stress-test the selected MLX `12/3/1` model beyond the search budget
-- evaluate longer rollouts and possibly larger grids than the current `30x30` and `50x50`, `50`-step checks
-- confirm the selected model remains exact under stronger post-selection validation
+- review the earlier idea of training the maze controller from local `3x3` patches instead of full mazes
+- determine whether a patch-local objective can preserve the exit-lockout and fill semantics
+- decide whether a prototype is worth implementing next
 
 ## Exit Criteria
 
-- longer-horizon rollout checks are run on the selected `12/3/1` model
-- the model remains exact under stronger validation than the selection sweep
-- findings are recorded in markdown tracking
+- the patch-local idea is reviewed against the current `maze_exit` task semantics
+- feasibility, likely benefits, and likely failure modes are recorded in markdown
+- a recommendation is made on whether to prototype it
 - step is logged in `tracking/step-history.md`
 - local git commit is created
 
 ## Notes
 
-Step 25 changed the hardware recommendation: MLX is now the preferred Apple Silicon backend because it is much faster than both PyTorch CPU and PyTorch MPS on the current `9x9` best-model workload while still preserving exact one-step and rollout behavior.
+Step 27 completed the first strong MLX minimal-model search and selected `12/3/1`.
 
-Step 26 added the MLX minimal-model search protocol and automated sweep driver.
+Step 28 then tightened the boundary search and extended the scale checks:
 
-Step 27 completed that search. Under the stronger MLX regime (`64` mazes, `300` epochs, `batch_size=128`), the first exact and reproducible candidate was `hidden=12`, `perception=3`, `update=1`. The smaller `8/3/1` model still failed, while `12/3/1` passed exact one-step checks and exact `30x30` / `50x50` rollouts on four clean retrains with seeds `0,1,2,3`.
+- `9/3/1` failed reproducibility
+- `10/3/1` failed screening
+- `11/3/1` failed reproducibility
+- the selected `12/3/1` model remained exact on `100x100` and `200x200` rollouts across seeds `0,1,2,3`

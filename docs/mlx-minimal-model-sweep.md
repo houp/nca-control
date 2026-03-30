@@ -79,6 +79,22 @@ The selected `12/3/1` architecture was retrained from scratch four times:
 
 This satisfies the current reproducibility requirement.
 
+## Follow-Up Validation
+
+The first strong sweep stopped at `12` because it was the first passing candidate. That still left two open questions:
+
+- do the boundary candidates `9`, `10`, and `11` also pass under the same strong recipe?
+- does the selected `12/3/1` model stay exact on much larger grids?
+
+Those follow-up checks are recorded in `docs/mlx-minimal-model-validation.md`.
+
+Final follow-up result:
+
+- `9/3/1` failed reproducibility
+- `10/3/1` failed screening
+- `11/3/1` failed reproducibility
+- `12/3/1` stayed exact on `100x100` and `200x200` rollouts across all four clean retraining seeds
+
 ## Interpretation
 
 - The old `32`-channel result was not the true minimal architecture for this task; it was the minimal architecture under a weaker and slower training regime.
@@ -95,6 +111,7 @@ For Apple Silicon:
 
 - use MLX for future minimal-model and recipe searches
 - treat `12/3/1` as the current best minimal exact and reproducible `maze_exit` model
+- treat its exact `100x100` and `200x200` validation as the current strongest grid-scaling evidence
 
 For portability:
 
