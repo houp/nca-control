@@ -6,6 +6,48 @@ This repository contains a stepwise research implementation for a controllable N
 
 The contents of this project are AI generated. The implementation, documentation, report, and presentation were produced with OpenAI Codex using the GPT-5.4 model with High reasoning effort.
 
+## Getting Started
+
+For a quick local start on the current verified setup:
+
+1. Create the default Python `3.14` environment:
+
+```bash
+UV_CACHE_DIR=/Users/witoldbolt/nca-control/.uv-cache uv sync --python /opt/homebrew/bin/python3.14
+```
+
+2. Train the current minimal verified MLX model:
+
+```bash
+.venv/bin/python scripts/train_mlx_one_step.py \
+  --task maze_exit \
+  --output-dir runs/quickstart_h12_p3_u1 \
+  --height 9 \
+  --width 9 \
+  --num-mazes 96 \
+  --eval-num-mazes 8 \
+  --epochs 500 \
+  --batch-size 128 \
+  --hidden-channels 12 \
+  --perception-kernel-size 3 \
+  --update-kernel-size 1
+```
+
+3. Launch the browser visualizer with the trained checkpoint:
+
+```bash
+.venv/bin/python scripts/interactive_compare.py \
+  --checkpoint runs/quickstart_h12_p3_u1/checkpoint_mlx \
+  --height 9 \
+  --width 9 \
+  --port 8768 \
+  --tick-ms 120
+```
+
+Then open [http://127.0.0.1:8768](http://127.0.0.1:8768).
+
+If you already have a trained checkpoint, skip the training step and point `--checkpoint` at that run directory instead. More detailed training, evaluation, and backend-specific commands are listed later in this README.
+
 ## Goal
 
 Learn an NCA that preserves exactly one active cell and moves it on a 2D periodic grid according to user actions:
@@ -155,6 +197,10 @@ Step 39 now establishes:
 - direct confirmation that Python `3.14` is compatible with the current dependency set, test suite, and MLX training path
 - promotion of Python `3.14` to the default interpreter target for the repository
 - retention of Python `3.13` as a secondary re-test path after major changes
+
+Step 40 now establishes:
+
+- public-facing report and slide text that focuses on final verified findings rather than superseded exploratory issues
 
 ## Experimental CUDA Path
 

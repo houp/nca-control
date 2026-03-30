@@ -2,26 +2,26 @@
 
 ## Step ID
 
-40
+41
 
 ## Title
 
-Final Findings Wording Cleanup
+README Quick Start Simplification
 
 ## Scope
 
-- remove outdated intermediate-problem wording from the technical report and presentation
-- keep the public-facing write-up focused on the final verified findings only
-- rebuild the PDFs so the generated artifacts match the revised sources
+- add a short, clear quick-start section near the top of `README.md`
+- make the first-use path for training and visualization easy to find
+- keep the detailed command catalog later in the README for advanced use
 
 ## Exit Criteria
 
-- outdated references to superseded exploratory failures are removed from the technical report and presentation
-- the revised report and presentation describe the final verified results rather than intermediate debugging history
-- the rebuilt PDFs match the updated sources
+- a new reader can find the minimal setup, training, and visualization steps near the top of the README
+- the quick-start instructions are consistent with the current verified `12/3/1` MLX workflow
+- the detailed commands later in the README remain available for advanced use
 - tracking is updated
 - local git commit is created
 
 ## Notes
 
-The report and slide deck should present the current stable result directly: the selected `12/3/1` MLX model is exact on the documented seed sweep and on the documented larger-grid checks. Historical exploratory issues are not useful in the final public summary once they are no longer part of the current conclusion set.
+The README currently contains many useful command examples, but the first-use path is buried too deep. The top of the file should give a new reader a short path to: create the environment, train the current best model, and launch the browser visualizer.
