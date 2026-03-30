@@ -15,9 +15,13 @@ import torch
 from .actions import Action
 from .dataset import (
     ACTION_ORDER,
+    DOWN_ACTION_INDEX,
+    LEFT_ACTION_INDEX,
     MazeExitTransitionDataset,
     MazeTransitionDataset,
+    RIGHT_ACTION_INDEX,
     TransitionDataset,
+    UP_ACTION_INDEX,
     build_maze_exit_transition_dataset,
     build_maze_transition_dataset,
     build_transition_dataset,
@@ -425,6 +429,27 @@ def convert_torch_checkpoint_to_mlx(
     }
 
 
+def _propose_action_positions_numpy(
+    rows: np.ndarray,
+    cols: np.ndarray,
+    action_indices: np.ndarray,
+    *,
+    height: int,
+    width: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    proposed_rows = np.where(
+        action_indices == UP_ACTION_INDEX,
+        (rows - 1) % height,
+        np.where(action_indices == DOWN_ACTION_INDEX, (rows + 1) % height, rows),
+    )
+    proposed_cols = np.where(
+        action_indices == LEFT_ACTION_INDEX,
+        (cols - 1) % width,
+        np.where(action_indices == RIGHT_ACTION_INDEX, (cols + 1) % width, cols),
+    )
+    return proposed_rows, proposed_cols
+
+
 def apply_torch_state_dict_to_mlx_model(
     model: MLXControllableNCAModel,
     state_dict: dict[str, torch.Tensor],
@@ -596,15 +621,12 @@ class _MLXDatasetAdapter:
         state_channel[batch_axis, 0, rows, cols] = self.value
         inputs = np.concatenate([state_channel, blocked[:, None, :, :], action_channels], axis=1)
 
-        proposed_rows = np.where(
-            action_indices == ACTION_ORDER.index(Action.UP),
-            (rows - 1) % self.height,
-            np.where(action_indices == ACTION_ORDER.index(Action.DOWN), (rows + 1) % self.height, rows),
-        )
-        proposed_cols = np.where(
-            action_indices == ACTION_ORDER.index(Action.LEFT),
-            (cols - 1) % self.width,
-            np.where(action_indices == ACTION_ORDER.index(Action.RIGHT), (cols + 1) % self.width, cols),
+        proposed_rows, proposed_cols = _propose_action_positions_numpy(
+            rows,
+            cols,
+            action_indices,
+            height=self.height,
+            width=self.width,
         )
         blocked_targets = blocked[batch_axis, proposed_rows, proposed_cols] > 0.5
         target_rows = np.where(blocked_targets, rows, proposed_rows)
@@ -650,15 +672,12 @@ class _MLXDatasetAdapter:
             active_layout_cols = exit_cols[active_examples]
             active_batch_indices = batch_axis[active_examples]
 
-            proposed_rows = np.where(
-                active_actions == ACTION_ORDER.index(Action.UP),
-                (active_rows - 1) % self.height,
-                np.where(active_actions == ACTION_ORDER.index(Action.DOWN), (active_rows + 1) % self.height, active_rows),
-            )
-            proposed_cols = np.where(
-                active_actions == ACTION_ORDER.index(Action.LEFT),
-                (active_cols - 1) % self.width,
-                np.where(active_actions == ACTION_ORDER.index(Action.RIGHT), (active_cols + 1) % self.width, active_cols),
+            proposed_rows, proposed_cols = _propose_action_positions_numpy(
+                active_rows,
+                active_cols,
+                active_actions,
+                height=self.height,
+                width=self.width,
             )
             blocked_targets = blocked[active_batch_indices, proposed_rows, proposed_cols] > 0.5
             target_rows = np.where(blocked_targets, active_rows, proposed_rows)

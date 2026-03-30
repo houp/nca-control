@@ -14,6 +14,7 @@ from .dataset import (
     build_maze_transition_dataset,
     build_transition_dataset,
     encode_control_input,
+    propose_action_positions_torch,
 )
 from .grid import GridState, step_grid
 from .inference import decode_prediction_state, load_checkpoint
@@ -87,11 +88,6 @@ def evaluate_rollout_checkpoint(
     rollout_width = int(config["width"]) if width is None else int(width)
     value = float(config["value"])
     task = str(config.get("task", "plain"))
-    up_index = ACTION_ORDER.index(ACTION_ORDER[1])
-    down_index = ACTION_ORDER.index(ACTION_ORDER[2])
-    left_index = ACTION_ORDER.index(ACTION_ORDER[3])
-    right_index = ACTION_ORDER.index(ACTION_ORDER[4])
-
     generator = torch.Generator(device="cpu")
     generator.manual_seed(seed)
 
@@ -124,6 +120,7 @@ def evaluate_rollout_checkpoint(
     first_failure_model = torch.full((num_sequences, 2), -1, dtype=torch.long, device=resolved_device)
 
     batch_index = torch.arange(num_sequences, device=resolved_device)
+    blocked_channel = blocked_tensor.to(dtype=torch.float32)
 
     for step_index in range(steps_per_sequence):
         action_indices = torch.randint(
@@ -134,15 +131,12 @@ def evaluate_rollout_checkpoint(
             device="cpu",
         )
         action_indices = action_indices.to(resolved_device)
-        proposed_ref_rows = torch.where(
-            action_indices == up_index,
-            (ref_rows - 1) % rollout_height,
-            torch.where(action_indices == down_index, (ref_rows + 1) % rollout_height, ref_rows),
-        )
-        proposed_ref_cols = torch.where(
-            action_indices == left_index,
-            (ref_cols - 1) % rollout_width,
-            torch.where(action_indices == right_index, (ref_cols + 1) % rollout_width, ref_cols),
+        proposed_ref_rows, proposed_ref_cols = propose_action_positions_torch(
+            ref_rows,
+            ref_cols,
+            action_indices,
+            height=rollout_height,
+            width=rollout_width,
         )
         blocked_reference = blocked_tensor[batch_index, proposed_ref_rows, proposed_ref_cols]
         ref_rows = torch.where(blocked_reference, ref_rows, proposed_ref_rows)
@@ -150,7 +144,7 @@ def evaluate_rollout_checkpoint(
 
         inputs = torch.zeros((num_sequences, 2 + len(ACTION_ORDER), rollout_height, rollout_width), device=resolved_device)
         inputs[batch_index, 0, model_rows, model_cols] = value
-        inputs[:, 1, :, :] = blocked_tensor.to(dtype=torch.float32)
+        inputs[:, 1, :, :] = blocked_channel
         inputs[batch_index, 2 + action_indices, :, :] = 1.0
 
         with torch.no_grad():

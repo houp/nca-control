@@ -12,6 +12,7 @@ from nca_control.dataset import (
     build_transition_dataset,
     encode_control_input,
     exit_fill_to_tensor,
+    propose_action_positions_torch,
     state_to_tensor,
 )
 from nca_control.grid import GridState
@@ -81,6 +82,23 @@ def test_build_transition_dataset_targets_match_reference_rule() -> None:
     assert _active_position(dataset.targets[right_index]) == (0, 1)
     assert _active_position(dataset.targets[up_index]) == (1, 0)
     assert _active_position(dataset.targets[none_index]) == (1, 1)
+
+
+def test_propose_action_positions_torch_wraps_and_preserves_none() -> None:
+    rows = torch.tensor([0, 0, 1, 1, 1], dtype=torch.long)
+    cols = torch.tensor([0, 1, 0, 1, 1], dtype=torch.long)
+    action_indices = torch.tensor([1, 2, 3, 4, 0], dtype=torch.long)
+
+    next_rows, next_cols = propose_action_positions_torch(
+        rows,
+        cols,
+        action_indices,
+        height=2,
+        width=2,
+    )
+
+    assert next_rows.tolist() == [1, 1, 1, 1, 1]
+    assert next_cols.tolist() == [0, 1, 1, 0, 1]
 
 
 def test_build_maze_transition_dataset_respects_walls() -> None:

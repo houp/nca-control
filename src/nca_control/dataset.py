@@ -16,6 +16,11 @@ ACTION_ORDER = [
     Action.LEFT,
     Action.RIGHT,
 ]
+ACTION_TO_INDEX = {action: index for index, action in enumerate(ACTION_ORDER)}
+UP_ACTION_INDEX = ACTION_TO_INDEX[Action.UP]
+DOWN_ACTION_INDEX = ACTION_TO_INDEX[Action.DOWN]
+LEFT_ACTION_INDEX = ACTION_TO_INDEX[Action.LEFT]
+RIGHT_ACTION_INDEX = ACTION_TO_INDEX[Action.RIGHT]
 
 
 @dataclass(frozen=True, slots=True)
@@ -24,6 +29,27 @@ class TransitionDataset:
     targets: torch.Tensor
     action_indices: torch.Tensor
     positions: torch.Tensor
+
+
+def propose_action_positions_torch(
+    rows: torch.Tensor,
+    cols: torch.Tensor,
+    action_indices: torch.Tensor,
+    *,
+    height: int,
+    width: int,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    proposed_rows = torch.where(
+        action_indices == UP_ACTION_INDEX,
+        (rows - 1) % height,
+        torch.where(action_indices == DOWN_ACTION_INDEX, (rows + 1) % height, rows),
+    )
+    proposed_cols = torch.where(
+        action_indices == LEFT_ACTION_INDEX,
+        (cols - 1) % width,
+        torch.where(action_indices == RIGHT_ACTION_INDEX, (cols + 1) % width, cols),
+    )
+    return proposed_rows, proposed_cols
 
 
 class MazeTransitionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
@@ -79,15 +105,12 @@ class MazeTransitionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         state_channel[batch_index, 0, rows, cols] = self.value
         inputs = torch.cat([state_channel, blocked.unsqueeze(1), action_channels], dim=1)
 
-        proposed_rows = torch.where(
-            action_indices == ACTION_ORDER.index(Action.UP),
-            (rows - 1) % self.height,
-            torch.where(action_indices == ACTION_ORDER.index(Action.DOWN), (rows + 1) % self.height, rows),
-        )
-        proposed_cols = torch.where(
-            action_indices == ACTION_ORDER.index(Action.LEFT),
-            (cols - 1) % self.width,
-            torch.where(action_indices == ACTION_ORDER.index(Action.RIGHT), (cols + 1) % self.width, cols),
+        proposed_rows, proposed_cols = propose_action_positions_torch(
+            rows,
+            cols,
+            action_indices,
+            height=self.height,
+            width=self.width,
         )
         blocked_targets = blocked[batch_index, proposed_rows, proposed_cols] > 0.5
         target_rows = torch.where(blocked_targets, rows, proposed_rows)
@@ -195,15 +218,12 @@ class MazeExitTransitionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
             active_layout_cols = exit_cols[active_examples]
             active_indices = batch_index[active_examples]
 
-            proposed_rows = torch.where(
-                active_actions == ACTION_ORDER.index(Action.UP),
-                (active_rows - 1) % self.height,
-                torch.where(active_actions == ACTION_ORDER.index(Action.DOWN), (active_rows + 1) % self.height, active_rows),
-            )
-            proposed_cols = torch.where(
-                active_actions == ACTION_ORDER.index(Action.LEFT),
-                (active_cols - 1) % self.width,
-                torch.where(active_actions == ACTION_ORDER.index(Action.RIGHT), (active_cols + 1) % self.width, active_cols),
+            proposed_rows, proposed_cols = propose_action_positions_torch(
+                active_rows,
+                active_cols,
+                active_actions,
+                height=self.height,
+                width=self.width,
             )
             blocked_targets = blocked[active_indices, proposed_rows, proposed_cols] > 0.5
             target_rows = torch.where(blocked_targets, active_rows, proposed_rows)
@@ -292,7 +312,7 @@ def exit_fill_to_tensor(state: GridState, device: str | torch.device = "cpu") ->
 
 def action_to_one_hot(action: Action, device: str | torch.device = "cpu") -> torch.Tensor:
     one_hot = torch.zeros((len(ACTION_ORDER),), dtype=torch.float32, device=device)
-    one_hot[ACTION_ORDER.index(action)] = 1.0
+    one_hot[ACTION_TO_INDEX[action]] = 1.0
     return one_hot
 
 
