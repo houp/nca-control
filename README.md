@@ -13,7 +13,7 @@ For a quick local start on the current verified setup:
 1. Create the default Python `3.14` environment:
 
 ```bash
-UV_CACHE_DIR=/Users/witoldbolt/nca-control/.uv-cache uv sync --python /opt/homebrew/bin/python3.14
+UV_CACHE_DIR=.uv-cache uv sync --python 3.14
 ```
 
 2. Train the current minimal verified MLX model:

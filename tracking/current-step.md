@@ -2,27 +2,25 @@
 
 ## Step ID
 
-42
+43
 
 ## Title
 
-MLX Visualizer Checkpoint Support
+Markdown Path Cleanup
 
 ## Scope
 
-- make the browser visualizer work with MLX checkpoints
-- keep the existing PyTorch visualization path working
-- update docs and tests so the supported checkpoint types are clear
+- remove hard-coded user-specific absolute paths from Markdown documentation
+- keep the quick-start instructions portable across clones and machines
+- verify that the Markdown documentation set no longer contains those user-specific paths
 
 ## Exit Criteria
 
-- the browser visualizer accepts MLX `checkpoint_mlx` files without crashing
-- the existing PyTorch checkpoint path still works
-- tests cover backend-aware visualizer checkpoint handling
-- README documents the MLX visualizer path clearly
+- no Markdown documentation file contains user-specific absolute paths
+- the README quick-start command still communicates the intended `uv` setup clearly
 - tracking is updated
 - local git commit is created
 
 ## Notes
 
-The current user-facing failure is specific and reproducible: `scripts/interactive_compare.py` still assumes a PyTorch checkpoint loader, so MLX `checkpoint_mlx` files fail immediately. The fix should stay small and should not regress the existing PyTorch visualization path.
+The current issue is documentation portability rather than runtime behavior. Markdown docs should not embed a specific local home-directory path when a repo-relative or generic command is sufficient.
