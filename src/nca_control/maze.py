@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Maze generation utilities for wall-aware and exit-aware experiments."""
+
 from dataclasses import dataclass
 from collections import deque
 from random import Random
@@ -9,6 +11,8 @@ from .grid import GridState
 
 @dataclass(frozen=True, slots=True)
 class MazeLayout:
+    """Static maze layout shared by the reference engine and the datasets."""
+
     height: int
     width: int
     blocked: frozenset[tuple[int, int]]
@@ -50,6 +54,10 @@ class MazeLayout:
 
 
 def generate_maze(height: int, width: int, seed: int = 0) -> MazeLayout:
+    """Generate a solvable maze and place the exit at the farthest reachable cell."""
+
+    # The DFS runs on a coarser logical grid and carves corridors into the
+    # actual cell grid, which keeps the maze connected and wall-dense.
     logical_height = max(1, (height - 1) // 2)
     logical_width = max(1, (width - 1) // 2)
     blocked = {(row, col) for row in range(height) for col in range(width)}
@@ -106,6 +114,8 @@ def _farthest_open_cell(
     blocked: frozenset[tuple[int, int]],
     start_cell: tuple[int, int],
 ) -> tuple[int, int]:
+    """Choose an exit that is maximally far from the start under maze connectivity."""
+
     visited = {start_cell}
     queue = deque([(start_cell, 0)])
     farthest_cell = start_cell

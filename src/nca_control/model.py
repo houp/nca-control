@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""PyTorch implementation of the local NCA-style transition rule."""
+
 import torch
 from torch import nn
 
@@ -49,6 +51,8 @@ class ControllableNCAModel(nn.Module):
         )
 
     def forward_logits(self, inputs: torch.Tensor) -> torch.Tensor:
+        """Return raw logits so the training loop can choose the task-specific loss."""
+
         if inputs.ndim != 4:
             raise ValueError("inputs must have shape [batch, channels, height, width]")
         if inputs.shape[1] < self.state_channels:
@@ -58,6 +62,8 @@ class ControllableNCAModel(nn.Module):
         return self.update(features)
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        """Map logits back into the constrained state representation used at inference time."""
+
         logits = self.forward_logits(inputs)
         if self.state_channels == 1:
             batch, channels, height, width = logits.shape

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Dataset builders and encoders for the deterministic control tasks."""
+
 from dataclasses import dataclass
 
 import torch
@@ -25,6 +27,8 @@ RIGHT_ACTION_INDEX = ACTION_TO_INDEX[Action.RIGHT]
 
 @dataclass(frozen=True, slots=True)
 class TransitionDataset:
+    """Fully materialized plain-control dataset used by the smallest experiments."""
+
     inputs: torch.Tensor
     targets: torch.Tensor
     action_indices: torch.Tensor
@@ -39,6 +43,8 @@ def propose_action_positions_torch(
     height: int,
     width: int,
 ) -> tuple[torch.Tensor, torch.Tensor]:
+    """Vectorized proposal step shared by dataset creation and rollout evaluation."""
+
     proposed_rows = torch.where(
         action_indices == UP_ACTION_INDEX,
         (rows - 1) % height,
@@ -53,6 +59,8 @@ def propose_action_positions_torch(
 
 
 class MazeTransitionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
+    """Lazy maze dataset that reconstructs batches from cached static tensor banks."""
+
     def __init__(
         self,
         layouts: list[MazeLayout],
@@ -105,6 +113,8 @@ class MazeTransitionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         state_channel[batch_index, 0, rows, cols] = self.value
         inputs = torch.cat([state_channel, blocked.unsqueeze(1), action_channels], dim=1)
 
+        # Compute the exact reference target in a vectorized form instead of
+        # calling the Python reference engine example-by-example.
         proposed_rows, proposed_cols = propose_action_positions_torch(
             rows,
             cols,
@@ -137,6 +147,8 @@ class MazeTransitionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
 
 
 class MazeExitTransitionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
+    """Maze dataset with explicit terminal fill stages for the exit-aware task."""
+
     def __init__(
         self,
         layouts: list[MazeLayout],
@@ -228,6 +240,8 @@ class MazeExitTransitionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
             blocked_targets = blocked[active_indices, proposed_rows, proposed_cols] > 0.5
             target_rows = torch.where(blocked_targets, active_rows, proposed_rows)
             target_cols = torch.where(blocked_targets, active_cols, proposed_cols)
+            # Active cells disappear as soon as they hit the exit; subsequent
+            # fill expansion is handled by the terminated branch below.
             reached_exit = (target_rows == active_layout_rows) & (target_cols == active_layout_cols)
             surviving = ~reached_exit
             if surviving.any():
@@ -239,6 +253,7 @@ class MazeExitTransitionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
             max_stage_indices = (
                 tensor_bank["fill_stage_lengths"].index_select(0, layout_indices[terminated_examples]) - 1
             )
+            # Once terminated, the target is "advance the fill by one clock tick".
             next_stage_indices = torch.minimum(fill_stage_indices[terminated_examples] + 1, max_stage_indices)
             next_exit_fill = _select_exit_fill_grids(
                 tensor_bank["exit_fill_grids"],
@@ -322,6 +337,8 @@ def encode_control_input(
     device: str | torch.device = "cpu",
     include_exit_dynamics: bool = False,
 ) -> torch.Tensor:
+    """Encode a deterministic state/action pair into model input channels."""
+
     state_channel = state_to_tensor(state, device=device)
     blocked_channel = blocked_to_tensor(state, device=device)
     action_channels = action_to_one_hot(action, device=device).view(len(ACTION_ORDER), 1, 1)
@@ -400,6 +417,8 @@ def build_maze_exit_transition_dataset(
 
 
 def _build_exit_fill_stages(layout: MazeLayout) -> list[frozenset[tuple[int, int]]]:
+    """Precompute the deterministic fill schedule used after the exit is reached."""
+
     state = GridState(
         height=layout.height,
         width=layout.width,
@@ -422,6 +441,8 @@ def _build_exit_fill_stages(layout: MazeLayout) -> list[frozenset[tuple[int, int
 def _build_exit_fill_tensor_bank(
     layouts: list[MazeLayout],
 ) -> tuple[torch.Tensor, torch.Tensor]:
+    """Pack all fill schedules into a dense tensor bank for fast batch indexing."""
+
     stage_sets = [_build_exit_fill_stages(layout) for layout in layouts]
     max_stages = max(len(stages) for stages in stage_sets)
     height = layouts[0].height
@@ -443,4 +464,6 @@ def _select_exit_fill_grids(
     layout_indices: torch.Tensor,
     fill_stage_indices: torch.Tensor,
 ) -> torch.Tensor:
+    """Gather the correct fill stage for each example in a batch."""
+
     return exit_fill_grids[layout_indices, fill_stage_indices]

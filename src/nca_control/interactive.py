@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""State helpers for the browser-based reference-vs-model visualizer."""
+
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from threading import RLock
@@ -12,6 +14,8 @@ from .inference import decode_prediction_state, predict_next_state
 
 
 def action_from_keysym(keysym: str) -> Action | None:
+    """Normalize browser/UI key names into the shared action enum."""
+
     normalized = keysym.lower()
     if normalized in {"up", "arrowup"}:
         return Action.UP
@@ -35,6 +39,8 @@ def prediction_to_grid_state(
     exit_fill: frozenset[tuple[int, int]] | None = None,
     terminated: bool = False,
 ) -> GridState:
+    """Convert a visualizer prediction tensor back into the matching game state."""
+
     if prediction.ndim != 3:
         raise ValueError("prediction must have shape [channels, height, width]")
     if prediction.shape[0] == 2:
@@ -75,6 +81,8 @@ def prediction_to_grid_state(
 
 @dataclass(slots=True)
 class InteractiveCompareSession:
+    """Lock-protected session state shared by the local web visualizer endpoints."""
+
     checkpoint_path: str
     initial_state: GridState
     device: str = "auto"
@@ -106,6 +114,8 @@ class InteractiveCompareSession:
         with self._lock:
             self.last_action = action
             self.reference_state = step_grid(self.reference_state, action)
+            # The model always advances from its own last decoded state so
+            # rollout drift is detectable immediately in the UI.
             prediction = predict_next_state(
                 self.checkpoint_path,
                 self.model_state,
@@ -140,6 +150,8 @@ class InteractiveCompareSession:
 
 
 def serialize_grid_state(state: GridState) -> dict[str, object]:
+    """Serialize the deterministic state into a browser-friendly JSON payload."""
+
     return {
         "height": state.height,
         "width": state.width,
@@ -154,6 +166,8 @@ def serialize_grid_state(state: GridState) -> dict[str, object]:
 
 
 def _states_match(reference: GridState, model: GridState) -> bool:
+    """Match exactly the fields that matter for gameplay-equivalent rollouts."""
+
     return (
         reference.row == model.row
         and reference.col == model.col

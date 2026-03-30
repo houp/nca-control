@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""PyTorch training loop for the deterministic control tasks."""
+
 import json
 import time
 from collections.abc import Callable, Iterator
@@ -46,6 +48,8 @@ def train_one_step(
     output_dir: str | Path,
     progress_printer: Callable[[str], None] | None = None,
 ) -> dict[str, object]:
+    """Train one local transition model and write checkpoints plus progress artifacts."""
+
     torch.manual_seed(config.seed)
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
@@ -195,6 +199,8 @@ def train_one_step(
 
 
 def _build_training_dataset(config: TrainConfig) -> tuple[Dataset[tuple[torch.Tensor, torch.Tensor]], int, int]:
+    """Construct the task-specific dataset and expose its input-channel count."""
+
     if config.task == "maze_exit":
         maze_dataset = build_maze_exit_transition_dataset(
             height=config.height,
@@ -233,6 +239,8 @@ def _iterate_training_batches(
     device: torch.device,
     seed: int,
 ) -> Iterator[tuple[torch.Tensor, torch.Tensor]]:
+    """Yield shuffled batches while preserving the optimized lazy maze datasets."""
+
     if isinstance(dataset, MazeTransitionDataset | MazeExitTransitionDataset):
         generator = torch.Generator(device="cpu")
         generator.manual_seed(seed)
@@ -256,6 +264,8 @@ def _iterate_training_batches(
 
 
 def _task_state_channels(task: str) -> int:
+    """Map task variants to the number of predicted state channels."""
+
     if task == "maze_exit":
         return 2
     return 1
@@ -271,10 +281,13 @@ def _write_json_file(path: Path, payload: dict[str, object]) -> None:
 
 
 def _compute_loss(logits: torch.Tensor, targets: torch.Tensor, task: str) -> torch.Tensor:
+    """Use cross-entropy for plain tasks and a structured binary loss for ``maze_exit``."""
+
     if task != "maze_exit":
         target_indices = torch.argmax(targets.view(targets.shape[0], -1), dim=1)
         return torch.nn.functional.cross_entropy(logits.view(logits.shape[0], -1), target_indices)
 
+    # The exit-aware task predicts both the active-cell map and the terminal fill map.
     active_logits = logits[:, 0, :, :]
     exit_logits = logits[:, 1, :, :]
     active_targets = targets[:, 0, :, :]

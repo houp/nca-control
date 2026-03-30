@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Evaluation utilities for one-step accuracy and long-horizon rollout exactness."""
+
 from pathlib import Path
 
 import torch
@@ -22,6 +24,8 @@ from .maze import generate_maze
 
 
 def decode_argmax_positions(grids: torch.Tensor) -> torch.Tensor:
+    """Convert single-channel heatmaps into integer grid positions."""
+
     if grids.ndim != 4 or grids.shape[1] != 1:
         raise ValueError("grids must have shape [batch, 1, height, width]")
     batch, _channels, _height, width = grids.shape
@@ -36,6 +40,8 @@ def evaluate_checkpoint(
     *,
     device: str = "auto",
 ) -> dict[str, float | int | str]:
+    """Run the standard one-step evaluation for a saved PyTorch checkpoint."""
+
     model, config, resolved_device = load_checkpoint(checkpoint_path, device=device)
     dataset = _build_evaluation_dataset(config)
     predictions, targets = _predict_dataset(model, dataset, resolved_device)
@@ -71,6 +77,8 @@ def evaluate_rollout_checkpoint(
     height: int | None = None,
     width: int | None = None,
 ) -> dict[str, object]:
+    """Compare learned rollouts against the deterministic reference dynamics."""
+
     model, config, resolved_device = load_checkpoint(checkpoint_path, device=device)
     if str(config.get("task", "plain")) == "maze_exit":
         return _evaluate_exit_rollout(
@@ -154,6 +162,7 @@ def evaluate_rollout_checkpoint(
         model_rows = torch.div(flat_indices, rollout_width, rounding_mode="floor")
         model_cols = flat_indices % rollout_width
 
+        # Only keep the first mismatch per sequence so reports stay compact and actionable.
         mismatch = ((ref_rows != model_rows) | (ref_cols != model_cols)) & (~failed)
         first_failure_step[mismatch] = step_index + 1
         first_failure_action[mismatch] = action_indices[mismatch]
@@ -251,6 +260,8 @@ def _evaluate_exit_predictions(
     dataset: MazeExitTransitionDataset,
     device: torch.device,
 ) -> dict[str, float | int | str]:
+    """Score exit-aware predictions after decoding them back into legal game states."""
+
     predicted_active_present = predictions[:, 0, :, :].amax(dim=(1, 2)) >= 0.5
     target_active_present = targets[:, 0, :, :].amax(dim=(1, 2)) >= 0.5
     active_presence_accuracy = (
@@ -272,6 +283,8 @@ def _evaluate_exit_predictions(
     decoded_exit_matches: list[bool] = []
     decoded_termination_matches: list[bool] = []
     for index in range(len(dataset)):
+        # Decode both tensors through the same state machine used by the browser
+        # visualizer so accuracy reflects gameplay semantics, not raw logits alone.
         previous_state = dataset.state_for_index(index)
         predicted_state = decode_prediction_state(predictions[index], previous_state)
         target_state = decode_prediction_state(targets[index], previous_state)
@@ -307,6 +320,8 @@ def _evaluate_exit_rollout(
     height_override: int | None = None,
     width_override: int | None = None,
 ) -> dict[str, object]:
+    """Roll out the exit-aware task by comparing decoded model states to the reference engine."""
+
     height = int(config["height"]) if height_override is None else int(height_override)
     width = int(config["width"]) if width_override is None else int(width_override)
     value = float(config["value"])

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Checkpoint loading and hard-decoding helpers for interactive use."""
+
 from pathlib import Path
 
 import torch
@@ -15,6 +17,8 @@ def load_checkpoint(
     checkpoint_path: str | Path,
     device: str = "auto",
 ) -> tuple[ControllableNCAModel, dict[str, object], torch.device]:
+    """Restore a PyTorch checkpoint together with its saved configuration."""
+
     resolved_device = resolve_device(device)
     payload = torch.load(checkpoint_path, map_location=resolved_device, weights_only=False)
     config = dict(payload["config"])
@@ -39,6 +43,8 @@ def predict_next_state(
     device: str = "auto",
     hard_decode: bool = True,
 ) -> torch.Tensor:
+    """Run one learned transition step for a deterministic state/action pair."""
+
     model, config, resolved_device = load_checkpoint(checkpoint_path, device=device)
     include_exit_dynamics = int(config.get("state_channels", 1)) > 1
     model_input = encode_control_input(
@@ -58,6 +64,8 @@ def predict_next_state(
 
 
 def hard_decode_grid(grid: torch.Tensor) -> torch.Tensor:
+    """Project a plain single-channel prediction back to one active cell."""
+
     if grid.ndim != 3 or grid.shape[0] != 1:
         raise ValueError("grid must have shape [1, height, width]")
     value = float(grid.sum().item())
@@ -71,6 +79,8 @@ def hard_decode_grid(grid: torch.Tensor) -> torch.Tensor:
 
 
 def hard_decode_exit_prediction(prediction: torch.Tensor, active_threshold: float = 0.5) -> torch.Tensor:
+    """Project exit-aware predictions back to legal active/exit-fill channels."""
+
     if prediction.ndim != 3 or prediction.shape[0] != 2:
         raise ValueError("prediction must have shape [2, height, width]")
     decoded = torch.zeros_like(prediction)
@@ -93,6 +103,8 @@ def decode_prediction_state(
     *,
     active_threshold: float = 0.5,
 ) -> GridState:
+    """Convert a model prediction back into a valid ``GridState``."""
+
     if prediction.ndim != 3:
         raise ValueError("prediction must have shape [channels, height, width]")
 
@@ -116,6 +128,7 @@ def decode_prediction_state(
         raise ValueError("prediction must have either 1 or 2 channels")
 
     if previous_state.terminated:
+        # Keep terminal dynamics exact by delegating to the deterministic engine.
         return step_grid(previous_state, Action.NONE)
 
     decoded = hard_decode_exit_prediction(prediction, active_threshold=active_threshold)

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""MLX backend for Apple Silicon training, evaluation, and checkpoint conversion."""
+
 import json
 import time
 from collections.abc import Callable, Iterator
@@ -35,6 +37,8 @@ from .train import TrainConfig
 
 
 class MLXControllableNCAModel(nn.Module):
+    """NHWC MLX variant of the local NCA-style transition rule."""
+
     def __init__(
         self,
         input_channels: int = 7,
@@ -68,6 +72,8 @@ class MLXControllableNCAModel(nn.Module):
         self.output = nn.Conv2d(hidden_channels, state_channels, kernel_size=1, bias=True)
 
     def forward_logits(self, inputs: mx.array) -> mx.array:
+        """Return raw logits in NHWC layout so MLX losses can stay layout-native."""
+
         if inputs.ndim != 4:
             raise ValueError("inputs must have shape [batch, height, width, channels]")
         if inputs.shape[-1] < self.state_channels:
@@ -93,6 +99,8 @@ def train_one_step_mlx(
     output_dir: str | Path,
     progress_printer: Callable[[str], None] | None = None,
 ) -> dict[str, object]:
+    """Train the MLX model and emit the same progress artifacts as the PyTorch path."""
+
     mx.random.seed(config.seed)
     np.random.seed(config.seed)
     output_path = Path(output_dir)
@@ -241,6 +249,8 @@ def evaluate_mlx_checkpoint(
     checkpoint_path: str | Path,
     batch_size: int = 256,
 ) -> dict[str, object]:
+    """Run one-step evaluation for an MLX checkpoint."""
+
     model, config = load_mlx_checkpoint(checkpoint_path)
     dataset = _build_evaluation_dataset(config)
     predictions, targets = _predict_dataset(model, dataset, batch_size=batch_size)
@@ -270,6 +280,8 @@ def evaluate_rollout_mlx_checkpoint(
     height_override: int | None = None,
     width_override: int | None = None,
 ) -> dict[str, object]:
+    """Roll out MLX checkpoints through the exact decoded maze-exit state machine."""
+
     model, config = load_mlx_checkpoint(checkpoint_path)
     task = str(config.get("task", "plain"))
     if task != "maze_exit":
@@ -298,6 +310,8 @@ def evaluate_rollout_mlx_checkpoint(
         action_indices = generator.integers(0, len(ACTION_ORDER), size=num_sequences)
         actions = [ACTION_ORDER[int(index)] for index in action_indices.tolist()]
         reference_states = [step_grid(state, action) for state, action in zip(reference_states, actions, strict=True)]
+        # The MLX model uses NHWC tensors, so the rollout path converts the
+        # shared PyTorch-style encoder output before inference.
         batch_inputs = np.stack(
             [
                 _torch_nchw_to_mlx_nhwc(
@@ -346,6 +360,8 @@ def evaluate_rollout_mlx_checkpoint(
 
 
 def load_mlx_checkpoint(checkpoint_path: str | Path) -> tuple[MLXControllableNCAModel, dict[str, object]]:
+    """Restore an MLX checkpoint and the serialized config that produced it."""
+
     checkpoint_file = Path(checkpoint_path)
     payload = json.loads(checkpoint_file.read_text(encoding="utf-8"))
     config = json.loads(Path(payload["config"]).read_text(encoding="utf-8"))
@@ -368,6 +384,8 @@ def predict_next_state_mlx(
     action: Action,
     hard_decode: bool = True,
 ) -> torch.Tensor:
+    """Single-step MLX inference with optional hard decoding for exact rollout checks."""
+
     model, config = load_mlx_checkpoint(checkpoint_path)
     include_exit_dynamics = int(config.get("state_channels", 1)) > 1
     model_input = encode_control_input(
@@ -394,6 +412,8 @@ def convert_torch_checkpoint_to_mlx(
     torch_checkpoint_path: str | Path,
     output_dir: str | Path,
 ) -> dict[str, Path]:
+    """Convert a trained PyTorch checkpoint into the equivalent MLX representation."""
+
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
     payload = torch.load(torch_checkpoint_path, map_location="cpu", weights_only=False)
@@ -454,6 +474,8 @@ def apply_torch_state_dict_to_mlx_model(
     model: MLXControllableNCAModel,
     state_dict: dict[str, torch.Tensor],
 ) -> None:
+    """Copy PyTorch convolution weights into the MLX model layout."""
+
     model.perception.weight = mx.array(_torch_conv_weight_to_mlx(state_dict["perception.weight"]))
     model.perception.bias = mx.array(state_dict["perception.bias"].detach().cpu().numpy())
     model.update_hidden.weight = mx.array(_torch_conv_weight_to_mlx(state_dict["update.1.weight"]))
@@ -474,6 +496,8 @@ def _loss_fn(
 
 
 def _compute_loss(logits: mx.array, targets: mx.array, task: str) -> mx.array:
+    """Mirror the PyTorch loss structure so backend comparisons stay comparable."""
+
     if task != "maze_exit":
         batch = logits.shape[0]
         logits_flat = mx.reshape(logits, (batch, -1))

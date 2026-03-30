@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Deterministic grid semantics used as the reference system for training and tests."""
+
 from dataclasses import dataclass, field
 
 from .actions import Action
@@ -7,6 +9,8 @@ from .actions import Action
 
 @dataclass(frozen=True, slots=True)
 class GridState:
+    """Full deterministic game state for the current maze/control task."""
+
     height: int
     width: int
     row: int
@@ -18,6 +22,8 @@ class GridState:
     terminated: bool = False
 
     def __post_init__(self) -> None:
+        # Keep every state instance valid so the same object can be reused by
+        # the dataset builders, the visualizer, and the rollout evaluators.
         if self.height <= 0 or self.width <= 0:
             raise ValueError("grid dimensions must be positive")
         if not (0 <= self.row < self.height):
@@ -78,7 +84,10 @@ class GridState:
 
 
 def step_grid(state: GridState, action: Action) -> GridState:
+    """Apply one exact environment step, including terminal fill propagation."""
+
     if state.terminated:
+        # After termination, actions are ignored and only the exit color spreads.
         return GridState(
             height=state.height,
             width=state.width,
@@ -125,6 +134,8 @@ def step_grid(state: GridState, action: Action) -> GridState:
 
 
 def _expand_exit_fill(state: GridState) -> frozenset[tuple[int, int]]:
+    """Grow the terminal fill over the non-periodic maze neighborhood."""
+
     filled = set(state.exit_fill or frozenset())
     for row, col in list(filled):
         for next_row, next_col in [(row - 1, col), (row + 1, col), (row, col - 1), (row, col + 1)]:

@@ -2,7 +2,7 @@
 
 ## Step ID
 
-35
+37
 
 ## Title
 
@@ -24,6 +24,6 @@ Patch-Local Training Prototype
 
 ## Notes
 
-Step 34 completed a beamer presentation at `report/technical_presentation.tex` and `report/technical_presentation.pdf`.
+Step 36 added baseline source-code comments and stricter documentation-alignment rules in `AGENTS.md`.
 
 The next deferred research question is whether patch-local supervision can retain the current guarantees while reducing training cost further.

@@ -25,6 +25,8 @@ This repository hosts a stepwise research experiment for controllable Neural Cel
 - `docs/testing-strategy.md`: verification and test matrix
 - `tracking/current-step.md`: current step objective and exit criteria
 - `tracking/step-history.md`: immutable step log
+- whenever code changes, update the corresponding documentation in the same step so the repository stays aligned with the actual implementation
+- whenever a substantial project change is made, update the technical report and presentation so they reflect the current code base and the current best verified simulation results
 
 ## Implementation Priorities
 
@@ -33,4 +35,3 @@ This repository hosts a stepwise research experiment for controllable Neural Cel
 3. GPU-ready training pipeline
 4. Interactive visualization and manual verification
 5. Research instrumentation, metrics, and ablations
-
