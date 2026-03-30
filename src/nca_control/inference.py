@@ -2,6 +2,7 @@ from __future__ import annotations
 
 """Checkpoint loading and hard-decoding helpers for interactive use."""
 
+import json
 from pathlib import Path
 
 import torch
@@ -11,6 +12,37 @@ from .dataset import encode_control_input
 from .device import resolve_device
 from .grid import GridState, step_grid
 from .model import ControllableNCAModel
+
+
+def detect_checkpoint_backend(checkpoint_path: str | Path) -> str:
+    """Infer whether a checkpoint belongs to the PyTorch or MLX path."""
+
+    checkpoint_file = Path(checkpoint_path)
+    if checkpoint_file.name == "checkpoint_mlx":
+        return "mlx"
+    try:
+        payload = json.loads(checkpoint_file.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return "torch"
+    if isinstance(payload, dict) and {"weights", "config"} <= payload.keys():
+        return "mlx"
+    return "torch"
+
+
+def load_checkpoint_config(
+    checkpoint_path: str | Path,
+    device: str = "auto",
+) -> dict[str, object]:
+    """Load only the serialized config, independent of the checkpoint backend."""
+
+    if detect_checkpoint_backend(checkpoint_path) == "mlx":
+        checkpoint_file = Path(checkpoint_path)
+        payload = json.loads(checkpoint_file.read_text(encoding="utf-8"))
+        return dict(json.loads(Path(payload["config"]).read_text(encoding="utf-8")))
+
+    resolved_device = resolve_device(device)
+    payload = torch.load(checkpoint_path, map_location=resolved_device, weights_only=False)
+    return dict(payload["config"])
 
 
 def load_checkpoint(
@@ -61,6 +93,33 @@ def predict_next_state(
             return hard_decode_exit_prediction(prediction)
         return hard_decode_grid(prediction)
     return prediction
+
+
+def predict_next_state_any(
+    checkpoint_path: str | Path,
+    state: GridState,
+    action: Action,
+    device: str = "auto",
+    hard_decode: bool = True,
+) -> torch.Tensor:
+    """Dispatch one-step inference to the checkpoint's native backend."""
+
+    if detect_checkpoint_backend(checkpoint_path) == "mlx":
+        from .mlx_backend import predict_next_state_mlx
+
+        return predict_next_state_mlx(
+            checkpoint_path,
+            state,
+            action,
+            hard_decode=hard_decode,
+        )
+    return predict_next_state(
+        checkpoint_path,
+        state,
+        action,
+        device=device,
+        hard_decode=hard_decode,
+    )
 
 
 def hard_decode_grid(grid: torch.Tensor) -> torch.Tensor:

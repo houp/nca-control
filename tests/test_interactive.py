@@ -141,7 +141,7 @@ def test_interactive_session_apply_action_updates_reference_and_model(monkeypatc
     def fake_predict_next_state(*args, **kwargs):  # type: ignore[no-untyped-def]
         return torch.tensor([[[0.0, 1.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]], dtype=torch.float32)
 
-    monkeypatch.setattr("nca_control.interactive.predict_next_state", fake_predict_next_state)
+    monkeypatch.setattr("nca_control.interactive.predict_next_state_any", fake_predict_next_state)
 
     payload = session.apply_action(Action.RIGHT)
 
@@ -169,7 +169,7 @@ def test_interactive_session_version_increments_monotonically(monkeypatch, tmp_p
     def fake_predict_next_state(*args, **kwargs):  # type: ignore[no-untyped-def]
         return torch.tensor([[[0.0, 1.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]], dtype=torch.float32)
 
-    monkeypatch.setattr("nca_control.interactive.predict_next_state", fake_predict_next_state)
+    monkeypatch.setattr("nca_control.interactive.predict_next_state_any", fake_predict_next_state)
 
     initial = session.snapshot()
     after_step = session.apply_action(Action.RIGHT)
@@ -227,7 +227,7 @@ def test_interactive_session_none_ticks_expand_terminal_exit_fill(monkeypatch, t
             dtype=torch.float32,
         )
 
-    monkeypatch.setattr("nca_control.interactive.predict_next_state", fake_predict_next_state)
+    monkeypatch.setattr("nca_control.interactive.predict_next_state_any", fake_predict_next_state)
 
     first = session.apply_action(Action.RIGHT)
     second = session.apply_action(Action.NONE)

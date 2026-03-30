@@ -198,6 +198,11 @@ Step 39 now establishes:
 - promotion of Python `3.14` to the default interpreter target for the repository
 - retention of Python `3.13` as a secondary re-test path after major changes
 
+Step 42 now establishes:
+
+- backend-aware browser visualization support for both PyTorch checkpoints and MLX `checkpoint_mlx` files
+- regression coverage for MLX visualizer checkpoint handling
+
 Step 40 now establishes:
 
 - public-facing report and slide text that focuses on final verified findings rather than superseded exploratory issues
@@ -310,6 +315,8 @@ Launch the interactive visual comparison app:
 
 Then open `http://127.0.0.1:8000` in your browser. The visualizer advances on a fixed clock and applies `none` automatically when no keypress is queued. You can tune the clock with `--tick-ms`.
 
+The visualizer supports both PyTorch `.pt` checkpoints and MLX `checkpoint_mlx` files.
+
 For the maze checkpoint, the visualizer automatically uses the maze seed stored in the checkpoint config:
 
 ```bash
@@ -320,6 +327,12 @@ The same applies to exit-aware maze checkpoints. On reset, the browser app gener
 
 ```bash
 .venv/bin/python scripts/interactive_compare.py --checkpoint runs/maze-exit9/checkpoint.pt --height 9 --width 9 --port 8768
+```
+
+For the currently selected minimal MLX model, use:
+
+```bash
+.venv/bin/python scripts/interactive_compare.py --checkpoint runs/mlx-seed-stability-96m-500e/seed0/checkpoint_mlx --height 9 --width 9 --port 8768
 ```
 
 ## Planned Stack

@@ -10,7 +10,7 @@ import typer
 
 from nca_control.actions import Action
 from nca_control.grid import GridState
-from nca_control.inference import load_checkpoint
+from nca_control.inference import load_checkpoint_config
 from nca_control.interactive import InteractiveCompareSession
 from nca_control.maze import generate_maze
 
@@ -319,7 +319,7 @@ def main(
     tick_ms: int = typer.Option(120, min=1, help="Fixed simulation tick interval in milliseconds."),
     device: str = typer.Option("auto"),
 ) -> None:
-    _model, config, _resolved = load_checkpoint(checkpoint, device="cpu")
+    config = load_checkpoint_config(checkpoint, device="cpu")
     effective_maze_seed = maze_seed
     if effective_maze_seed is None and str(config.get("task", "plain")) in {"maze", "maze_exit"}:
         effective_maze_seed = int(config.get("maze_seed", 0))

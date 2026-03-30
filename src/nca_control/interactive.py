@@ -10,7 +10,7 @@ import torch
 
 from .actions import Action
 from .grid import GridState, step_grid
-from .inference import decode_prediction_state, predict_next_state
+from .inference import decode_prediction_state, predict_next_state_any
 
 
 def action_from_keysym(keysym: str) -> Action | None:
@@ -116,7 +116,7 @@ class InteractiveCompareSession:
             self.reference_state = step_grid(self.reference_state, action)
             # The model always advances from its own last decoded state so
             # rollout drift is detectable immediately in the UI.
-            prediction = predict_next_state(
+            prediction = predict_next_state_any(
                 self.checkpoint_path,
                 self.model_state,
                 action,

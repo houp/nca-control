@@ -2,26 +2,27 @@
 
 ## Step ID
 
-41
+42
 
 ## Title
 
-README Quick Start Simplification
+MLX Visualizer Checkpoint Support
 
 ## Scope
 
-- add a short, clear quick-start section near the top of `README.md`
-- make the first-use path for training and visualization easy to find
-- keep the detailed command catalog later in the README for advanced use
+- make the browser visualizer work with MLX checkpoints
+- keep the existing PyTorch visualization path working
+- update docs and tests so the supported checkpoint types are clear
 
 ## Exit Criteria
 
-- a new reader can find the minimal setup, training, and visualization steps near the top of the README
-- the quick-start instructions are consistent with the current verified `12/3/1` MLX workflow
-- the detailed commands later in the README remain available for advanced use
+- the browser visualizer accepts MLX `checkpoint_mlx` files without crashing
+- the existing PyTorch checkpoint path still works
+- tests cover backend-aware visualizer checkpoint handling
+- README documents the MLX visualizer path clearly
 - tracking is updated
 - local git commit is created
 
 ## Notes
 
-The README currently contains many useful command examples, but the first-use path is buried too deep. The top of the file should give a new reader a short path to: create the environment, train the current best model, and launch the browser visualizer.
+The current user-facing failure is specific and reproducible: `scripts/interactive_compare.py` still assumes a PyTorch checkpoint loader, so MLX `checkpoint_mlx` files fail immediately. The fix should stay small and should not regress the existing PyTorch visualization path.
