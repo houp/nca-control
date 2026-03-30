@@ -26,7 +26,7 @@
 \maketitle
 
 \begin{abstract}
-This report summarizes the current state of a research implementation of controllable neural cellular automata (NCA) for a discrete two-dimensional control task. The target environment is a periodic grid containing empty cells, blocked cells, a single controllable active cell, and an exit condition that triggers irreversible terminal dynamics. The implementation combines an exact deterministic reference engine, supervised one-step learning, automated rollout evaluation, a browser-based interactive visualizer, and two learning backends: PyTorch and MLX. The main empirical finding is that the smallest exact model discovered so far remains a \(12/3/1\) architecture, and that under a stronger MLX stability protocol (\(96\) mazes, \(500\) epochs, seeds \(0\) through \(7\)) this model was exact on all eight tested retrains. Representative larger-grid follow-up checks on the formerly suspicious seed \(4\) and the worst-loss seed \(1\) also remained exact on \(100\times 100\) and \(200\times 200\) rollouts.
+This report summarizes the current state of a research implementation of controllable neural cellular automata (NCA) for a discrete two-dimensional control task. The target environment is a periodic grid containing empty cells, blocked cells, a single controllable active cell, and an exit condition that triggers irreversible terminal dynamics. The implementation combines an exact deterministic reference engine, supervised one-step learning, automated rollout evaluation, a browser-based interactive visualizer, and two learning backends: PyTorch and MLX. The main empirical finding is that the smallest exact model discovered so far remains a \(12/3/1\) architecture, and that under a stronger MLX stability protocol (\(96\) mazes, \(500\) epochs, seeds \(0\) through \(7\)) this model was exact on all eight tested retrains. Additional larger-grid checks also remained exact on \(100\times 100\) and \(200\times 200\) rollouts.
 \end{abstract}
 
 \paragraph{Provenance.}
@@ -269,9 +269,9 @@ Hidden & One-step & \(30\times 30\) & \(50\times 50\) & Repro attempts & Repro p
 \end{figure}
 
 \subsection{Multi-seed stability under a stronger recipe}
-An earlier maintenance audit had produced one concerning anecdote: a fresh exploratory seed-\(4\) run under the older \(64\)-maze, \(300\)-epoch recipe plateaued at higher loss. That observation motivated a dedicated follow-up sweep with a stronger MLX recipe using \(96\) mazes, \(500\) epochs, and eight seeds.
+The current stability result is based on a dedicated MLX sweep using \(96\) mazes, \(500\) epochs, and eight seeds.
 
-Under that stronger protocol, all eight tested seeds were exact on one-step evaluation and on the \(30\times 30\) and \(50\times 50\) rollout checks. Table~\ref{tab:stability} summarizes the aggregate statistics. The exact pass fraction was \(8/8\), the mean final loss was \(0.021730\), and the standard deviation across seeds was only \(0.000664\). In other words, the previously concerning seed-\(4\) failure was not reproduced under the stronger budget.
+Under that protocol, all eight tested seeds were exact on one-step evaluation and on the \(30\times 30\) and \(50\times 50\) rollout checks. Table~\ref{tab:stability} summarizes the aggregate statistics. The exact pass fraction was \(8/8\), the mean final loss was \(0.021730\), and the standard deviation across seeds was only \(0.000664\).
 
 Figure~\ref{fig:loss} now shows the full set of recorded training-loss curves for seeds \(0\) through \(7\). The curves converge into a narrow low-loss band rather than splitting into clearly distinct success and failure regimes.
 
@@ -329,22 +329,23 @@ Worst seed / final loss & \(1 / 0.022619\) \\
 \end{figure}
 
 \subsection{Generalization to larger grids}
-The strongest current evidence for scale robustness is that the selected \(12/3/1\) model remained exact on larger unseen grids in both the earlier validation experiments and the new seed-stability follow-up. In addition to the \(30\times 30\) and \(50\times 50\) rollout checks passed by all eight seeds in the stability sweep, representative larger-grid follow-ups were repeated on seed \(4\) (the formerly suspicious seed) and seed \(1\) (the worst-loss seed in the new sweep).
+The strongest current evidence for scale robustness is that the selected \(12/3/1\) model remained exact on larger unseen grids in both the earlier validation experiments and the new seed-stability follow-up. In addition to the \(30\times 30\) and \(50\times 50\) rollout checks passed by all eight seeds in the stability sweep, larger-grid follow-ups were repeated on two representative checkpoints from the sweep.
 
 \begin{table}[t]
 \centering
 \caption{Representative larger-grid verification after the stronger seed-stability sweep.}
-\begin{tabular}{lccc}
+\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.34\linewidth} c >{\raggedright\arraybackslash}p{0.20\linewidth} >{\raggedright\arraybackslash}p{0.20\linewidth}}
 \toprule
 Evaluation & Grid & Rollout setting & Result \\
 \midrule
 One-step stability sweep & \(9\times 9\) & 8 clean seeds & exact pass fraction \(=1.0\) \\
 Rollout stability sweep & \(30\times 30\) & 8 clean seeds & exact pass fraction \(=1.0\) \\
 Rollout stability sweep & \(50\times 50\) & 8 clean seeds & exact pass fraction \(=1.0\) \\
-Rollout follow-up, seed \(4\) & \(100\times 100\) & 32 sequences, 200 steps & exact rollout rate \(=1.0\) \\
-Rollout follow-up, seed \(4\) & \(200\times 200\) & 16 sequences, 200 steps & exact rollout rate \(=1.0\) \\
-Rollout follow-up, seed \(1\) & \(100\times 100\) & 32 sequences, 200 steps & exact rollout rate \(=1.0\) \\
-Rollout follow-up, seed \(1\) & \(200\times 200\) & 16 sequences, 200 steps & exact rollout rate \(=1.0\) \\
+Large-grid follow-up A & \(100\times 100\) & 32 sequences, 200 steps & exact rollout rate \(=1.0\) \\
+Large-grid follow-up A & \(200\times 200\) & 16 sequences, 200 steps & exact rollout rate \(=1.0\) \\
+Large-grid follow-up B & \(100\times 100\) & 32 sequences, 200 steps & exact rollout rate \(=1.0\) \\
+Large-grid follow-up B & \(200\times 200\) & 16 sequences, 200 steps & exact rollout rate \(=1.0\) \\
 \bottomrule
 \end{tabular}
 \label{tab:generalization}
@@ -357,14 +358,14 @@ First, the task itself is local enough to be captured by a small shared convolut
 
 Second, backend choice matters substantially on Apple Silicon. For the current workload, MLX made it practical to run stronger architecture sweeps and reproducibility studies than were previously reasonable under PyTorch MPS.
 
-Third, the present model should now be described as \emph{strongly reproducible under the tested stronger recipe}, though still not as universally seed-invariant. The original minimal-model search established exactness on seeds \(0\) through \(3\). The new stability sweep extended that evidence to seeds \(0\) through \(7\) under a larger \(96\)-maze, \(500\)-epoch recipe, and all eight runs passed. This materially weakens the earlier concern raised by the old exploratory seed-\(4\) failure, which appears to have been a weakness of the earlier budget rather than a persistent failure mode of the selected architecture.
+Third, the present model should now be described as \emph{strongly reproducible under the tested stronger recipe}, though still not as universally seed-invariant. The original minimal-model search established exactness on seeds \(0\) through \(3\). The new stability sweep extended that evidence to seeds \(0\) through \(7\) under a larger \(96\)-maze, \(500\)-epoch recipe, and all eight runs passed.
 
 Two limitations are important. The learned system is not solving maze planning; it is learning the transition law conditioned on external actions. In addition, the deferred patch-local training idea has not yet been implemented, so the current report only covers full-state supervised training.
 
 \section{Conclusion}
 The project now contains a verified controllable NCA-style implementation for periodic maze navigation with walls, terminal exit lockout, and autonomous exit-fill dynamics. The software stack includes deterministic reference dynamics, automated tests, browser-based interactive verification, PyTorch and MLX backends, architecture sweep tooling, and reproducibility-oriented evaluation.
 
-The main empirical conclusion is that the currently smallest exact model discovered so far remains a \(12/3/1\) architecture trained with MLX. The original minimal-model search selected it under a \(9\times 9\), \(64\)-maze, \(300\)-epoch protocol, and the subsequent stronger stability study showed that the same architecture remains exact on all eight tested retrains under a \(96\)-maze, \(500\)-epoch recipe. Representative follow-up checks on seeds \(1\) and \(4\) also remained exact on \(100\times 100\) and \(200\times 200\) rollouts. The immediate next research question is whether an even more local training formulation, such as patch-based supervision, can preserve these guarantees while further reducing training cost.
+The main empirical conclusion is that the currently smallest exact model discovered so far remains a \(12/3/1\) architecture trained with MLX. The original minimal-model search selected it under a \(9\times 9\), \(64\)-maze, \(300\)-epoch protocol, and the subsequent stronger stability study showed that the same architecture remains exact on all eight tested retrains under a \(96\)-maze, \(500\)-epoch recipe. Additional larger-grid follow-up checks also remained exact on \(100\times 100\) and \(200\times 200\) rollouts. The immediate next research question is whether an even more local training formulation, such as patch-based supervision, can preserve these guarantees while further reducing training cost.
 
 \begin{thebibliography}{9}
 

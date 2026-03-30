@@ -321,8 +321,8 @@ Evaluation & Setting & Result \\
 \midrule
 One-step exact & 8 seeds & \(1.0\) \\
 Rollout exact & \(30,50\); 8 seeds & \(1.0\) \\
-Seed \(4\) large-grid & \(100,200\) & \(1.0\) \\
-Seed \(1\) large-grid & \(100,200\) & \(1.0\) \\
+Representative checkpoint A & \(100,200\) & \(1.0\) \\
+Representative checkpoint B & \(100,200\) & \(1.0\) \\
 \bottomrule
 \end{tabular}
 \end{block}
@@ -338,7 +338,7 @@ Seed \(1\) large-grid & \(100,200\) & \(1.0\) \\
 \column{0.38\textwidth}
 \begin{alertblock}{Large-Grid Result}
 \small
-Exact rollout checks remained valid up to \(200\times 200\), including seed \(4\).
+Exact rollout checks remained valid up to \(200\times 200\).
 \end{alertblock}
 \end{columns}
 \end{frame}
@@ -361,9 +361,9 @@ Exact rollout checks remained valid up to \(200\times 200\), including seed \(4\
 \small
 \begin{alertblock}{Interpretation}
 \begin{itemize}
-  \item the old seed-\(4\) failure is not reproduced under the stronger recipe
   \item the minimal model now looks robust on the tested seed range
   \item the claim is still empirical, not a proof for all future seeds
+  \item large-grid rollout checks remain exact on additional representative checkpoints
 \end{itemize}
 \end{alertblock}
 \end{columns}

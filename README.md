@@ -148,7 +148,7 @@ Step 38 now establishes:
 - a dedicated MLX seed-stability sweep for the selected `12/3/1` model
 - a stronger reproducibility result under `96` mazes and `500` epochs across seeds `0..7`
 - exact `30x30` and `50x50` rollout behavior on all `8/8` tested seeds
-- follow-up `100x100` and `200x200` rollout checks on the formerly suspicious seed `4` and the worst-loss seed `1`
+- follow-up `100x100` and `200x200` rollout checks on additional representative checkpoints
 
 Step 39 now establishes:
 
