@@ -27,11 +27,6 @@ Step 1 establishes:
 - a deterministic reference transition engine
 - automated baseline tests for movement semantics
 
-Step 2 is in progress and adds:
-
-- scripted text-mode rollouts
-- CLI-based deterministic simulation
-
 Step 2 now establishes:
 
 - deterministic trajectory generation
@@ -157,7 +152,7 @@ Train the currently selected minimal exact model:
 .venv/bin/python scripts/train_mlx_one_step.py --task maze_exit --output-dir runs/mlx_h12_p3_u1 --height 9 --width 9 --num-mazes 64 --eval-num-mazes 8 --epochs 300 --batch-size 128 --hidden-channels 12 --perception-kernel-size 3 --update-kernel-size 1
 ```
 
-Train the same recipe with MLX:
+Train the older 32-channel MLX reference recipe:
 
 ```bash
 .venv/bin/python scripts/train_mlx_one_step.py --task maze_exit --output-dir runs/mlx_h32_p3_u1 --height 9 --width 9 --num-mazes 16 --eval-num-mazes 4 --epochs 150 --batch-size 64 --hidden-channels 32 --perception-kernel-size 3 --update-kernel-size 1
@@ -218,7 +213,8 @@ The same applies to exit-aware maze checkpoints. On reset, the browser app gener
 
 - `uv` for environment and dependency management
 - Python `3.13`
-- PyTorch on Apple Silicon MPS for training/inference
+- MLX as the preferred Apple Silicon training backend
+- PyTorch retained for CPU compatibility and future CUDA-class machines
 - `pytest` for automated verification
 
 ## Repository Layout

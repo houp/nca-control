@@ -6,29 +6,28 @@
 
 ## Title
 
-Patch-local training prototype review
+Documentation and codebase maintenance
 
 ## Scope
 
-- review the earlier idea of training the maze controller from local `3x3` patches instead of full mazes
-- determine whether a patch-local objective can preserve the exit-lockout and fill semantics
-- decide whether a prototype is worth implementing next
+- audit project documents against the current code base and experiment results
+- simplify and refactor small areas of code without changing behavior
+- finish with a fresh clean training and verification run of the selected minimal MLX model
 
 ## Exit Criteria
 
-- the patch-local idea is reviewed against the current `maze_exit` task semantics
-- feasibility, likely benefits, and likely failure modes are recorded in markdown
-- a recommendation is made on whether to prototype it
+- repository documents are consistent with the current implementation and selected model
+- code cleanup/refactoring is applied in small verified steps
+- automated tests pass after each code change
+- a fresh clean training and verification run confirms the selected minimal model still works
 - step is logged in `tracking/step-history.md`
 - local git commit is created
 
 ## Notes
 
-Step 27 completed the first strong MLX minimal-model search and selected `12/3/1`.
-
-Step 28 then tightened the boundary search and extended the scale checks:
+The currently selected minimal model remains MLX `12/3/1`:
 
 - `9/3/1` failed reproducibility
 - `10/3/1` failed screening
 - `11/3/1` failed reproducibility
-- the selected `12/3/1` model remained exact on `100x100` and `200x200` rollouts across seeds `0,1,2,3`
+- `12/3/1` remained exact on `100x100` and `200x200` rollouts across seeds `0,1,2,3`
