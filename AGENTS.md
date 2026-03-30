@@ -14,7 +14,8 @@ This repository hosts a stepwise research experiment for controllable Neural Cel
 ## Technical Direction
 
 - Environment management: `uv`
-- Primary interpreter target: Python `3.13`
+- Primary interpreter target: Python `3.14`
+- Secondary interpreter re-test path after major changes: Python `3.13`
 - ML framework targets: MLX on Apple Silicon and PyTorch for portable CPU, Apple Silicon MPS, and experimental Linux CUDA execution
 - First principle: lock down deterministic movement semantics before training any model
 

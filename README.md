@@ -150,6 +150,12 @@ Step 38 now establishes:
 - exact `30x30` and `50x50` rollout behavior on all `8/8` tested seeds
 - follow-up `100x100` and `200x200` rollout checks on the formerly suspicious seed `4` and the worst-loss seed `1`
 
+Step 39 now establishes:
+
+- direct confirmation that Python `3.14` is compatible with the current dependency set, test suite, and MLX training path
+- promotion of Python `3.14` to the default interpreter target for the repository
+- retention of Python `3.13` as a secondary re-test path after major changes
+
 ## Experimental CUDA Path
 
 PyTorch now has an experimental CUDA-enabled code path for collaborators running the project on Linux with NVIDIA GPUs. In practical terms, the existing PyTorch training and evaluation entrypoints can be used with `--device cuda`, and `--device auto` will prefer CUDA when it is available.
@@ -157,6 +163,11 @@ PyTorch now has an experimental CUDA-enabled code path for collaborators running
 This CUDA path is not tested in the current macOS/Apple Silicon environment and is not covered by the reported experimental results in this repository. The current verified results remain those obtained on CPU, MPS, and MLX in the recorded macOS experiments.
 
 ## Commands
+
+Default interpreter target:
+
+- Python `3.14`
+- Python `3.13` remains supported as an occasional secondary re-test path after major changes
 
 Train a one-step model:
 
@@ -268,7 +279,8 @@ The same applies to exit-aware maze checkpoints. On reset, the browser app gener
 ## Planned Stack
 
 - `uv` for environment and dependency management
-- Python `3.13`
+- Python `3.14` as the main interpreter target
+- Python `3.13` as a secondary re-test path
 - MLX as the preferred Apple Silicon training backend
 - PyTorch retained for CPU compatibility and future CUDA-class machines
 - `pytest` for automated verification

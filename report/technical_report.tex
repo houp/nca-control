@@ -144,7 +144,7 @@ with circular padding so that the learned rule is compatible with periodic bound
 \end{figure}
 
 \subsection{Software backends}
-The repository retains both a PyTorch implementation and an MLX implementation. PyTorch remains useful for CPU execution and for an experimental CUDA-enabled path intended for collaborators running Linux on NVIDIA hardware, while MLX is currently the preferred Apple Silicon backend. The implementation also includes:
+The repository retains both a PyTorch implementation and an MLX implementation. PyTorch remains useful for CPU execution and for an experimental CUDA-enabled path intended for collaborators running Linux on NVIDIA hardware, while MLX is currently the preferred Apple Silicon backend. The software environment is now maintained primarily against Python \(3.14\), with Python \(3.13\) retained as a secondary re-test path after major changes. The implementation also includes:
 \begin{itemize}
   \item a text-based simulation interface for scripted testing,
   \item one-step evaluation scripts,
