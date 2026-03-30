@@ -2,6 +2,10 @@
 
 This repository contains a stepwise research implementation for a controllable Neural Cellular Automata (NCA) system.
 
+## AI-Generated Provenance
+
+The contents of this project are AI generated. The implementation, documentation, report, and presentation were produced with OpenAI Codex using the GPT-5.4 model with High reasoning effort.
+
 ## Goal
 
 Learn an NCA that preserves exactly one active cell and moves it on a 2D periodic grid according to user actions:

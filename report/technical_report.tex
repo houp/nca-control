@@ -29,6 +29,9 @@
 This report summarizes the current state of a research implementation of controllable neural cellular automata (NCA) for a discrete two-dimensional control task. The target environment is a periodic grid containing empty cells, blocked cells, a single controllable active cell, and an exit condition that triggers irreversible terminal dynamics. The implementation combines an exact deterministic reference engine, supervised one-step learning, automated rollout evaluation, a browser-based interactive visualizer, and two learning backends: PyTorch and MLX. The main empirical finding is that, under a stronger MLX training protocol, the smallest exact and reproducible model discovered so far uses 12 hidden channels with a \(3\times 3\) perception kernel and a \(1\times 1\) update kernel. This model remains exact on larger unseen grids up to \(200\times 200\) in the recorded validation runs. A recent maintenance pass preserved these results on the current code base and confirmed that the selected model still reproduces on a known-good seed.
 \end{abstract}
 
+\paragraph{Provenance.}
+The contents of this project are AI generated. The implementation, documentation, and experimental write-up were produced with OpenAI Codex using the GPT-5.4 model with High reasoning effort.
+
 \section{Introduction}
 Neural cellular automata study how spatially shared local update rules can generate or maintain structured global behavior. In the present project, the focus is narrower and control-oriented: instead of image growth or regeneration alone, the learned local rule must emulate a deterministic game-like transition system driven by user actions. The task is intentionally minimal but exacting. The system must preserve exactly one active cell, respect walls, wrap around periodic boundaries, stop responding after an exit state is reached, and propagate a terminal fill state over time.
 
