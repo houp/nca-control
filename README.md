@@ -124,6 +124,14 @@ Step 31 now establishes:
 - a small shared-logic refactor removing duplicated action-index movement code
 - a fresh clean MLX retrain on the current code confirming the selected `12/3/1` model still reaches exact one-step behavior and exact larger-grid rollouts on a known-good seed
 
+Step 32 now establishes:
+
+- a short academic-style XeTeX report summarizing the implementation, experimental protocol, backend comparison, minimal-model search, and current reproducibility findings
+- data-driven figures and tables exported from the recorded run artifacts under `runs/`
+- a compiled PDF at `report/technical_report.pdf`
+
+The report source is in `report/technical_report.tex`, and the corresponding build data for figures is in `report/data/`.
+
 ## Commands
 
 Train a one-step model:

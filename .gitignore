@@ -9,3 +9,8 @@ build/
 dist/
 *.egg-info/
 runs/
+report/*.aux
+report/*.log
+report/*.out
+report/*.xdv
+report/missfont.log

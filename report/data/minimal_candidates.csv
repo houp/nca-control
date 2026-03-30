@@ -1,0 +1,5 @@
+hidden_channels,screen_full_state_accuracy,screen_rollout_30,screen_rollout_50,repro_attempts,repro_passes,repro_pass_fraction,result
+9,1.0,1.0,1.0,2,1,0.5,failed
+10,0.8625730994152047,0.0,0.0,0,0,0.0,screened
+11,1.0,1.0,1.0,4,3,0.75,failed
+12,1.0,1.0,1.0,4,4,1.0,selected
