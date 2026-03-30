@@ -132,6 +132,13 @@ Step 32 now establishes:
 
 The report source is in `report/technical_report.tex`, and the corresponding build data for figures is in `report/data/`.
 
+Step 34 now establishes:
+
+- a beamer presentation summarizing the project motivation, implementation approach, backend comparison, minimal-model search, and verified findings
+- a compiled slide deck at `report/technical_presentation.pdf`
+
+The slide source is in `report/technical_presentation.tex`.
+
 ## Commands
 
 Train a one-step model:

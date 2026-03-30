@@ -2,29 +2,28 @@
 
 ## Step ID
 
-34
+35
 
 ## Title
 
-Academic Presentation
+Patch-Local Training Prototype
 
 ## Scope
 
-- create a short academic-style presentation consistent with the technical report
-- summarize the implementation, solution approach, and key findings in slide form
-- typeset the presentation with XeTeX and compile a PDF
+- evaluate the deferred patch-local training idea against the current full-state training pipeline
+- test whether local `3x3` supervision can preserve exactness, reproducibility, and cross-grid generalization
+- compare training cost and model size implications under the MLX backend
 
 ## Exit Criteria
 
-- a presentation plan is written in markdown
-- the beamer source is added to the repository
-- the XeTeX PDF compiles successfully
-- the slides are consistent with the technical report and verified artifacts
+- a concrete patch-local training formulation is specified in code and documentation
+- at least one MLX-trained patch-local model is evaluated on one-step and rollout metrics
+- the result is compared directly against the selected `12/3/1` full-state baseline
 - tracking is updated
 - local git commit is created
 
 ## Notes
 
-Step 33 completed a short academic report at `report/technical_report.tex` and `report/technical_report.pdf`.
+Step 34 completed a beamer presentation at `report/technical_presentation.tex` and `report/technical_presentation.pdf`.
 
-The current presentation step should summarize the verified `maze_exit` implementation and the selected MLX `12/3/1` minimal model without introducing new unverified claims.
+The next deferred research question is whether patch-local supervision can retain the current guarantees while reducing training cost further.

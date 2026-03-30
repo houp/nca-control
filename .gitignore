@@ -13,4 +13,8 @@ report/*.aux
 report/*.log
 report/*.out
 report/*.xdv
+report/*.nav
+report/*.snm
+report/*.toc
+report/*.vrb
 report/missfont.log
