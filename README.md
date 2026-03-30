@@ -16,10 +16,16 @@ For a quick local start on the current verified setup:
 uv sync --python 3.14
 ```
 
-2. Train the current minimal verified MLX model:
+2. Activate the virtual environment:
 
 ```bash
-.venv/bin/python scripts/train_mlx_one_step.py \
+source .venv/bin/activate
+```
+
+3. Train the current minimal verified MLX model:
+
+```bash
+python scripts/train_mlx_one_step.py \
   --task maze_exit \
   --output-dir runs/quickstart_h12_p3_u1 \
   --height 9 \
@@ -33,10 +39,10 @@ uv sync --python 3.14
   --update-kernel-size 1
 ```
 
-3. Launch the browser visualizer with the trained checkpoint:
+4. Launch the browser visualizer with the trained checkpoint:
 
 ```bash
-.venv/bin/python scripts/interactive_compare.py \
+python scripts/interactive_compare.py \
   --checkpoint runs/quickstart_h12_p3_u1/checkpoint_mlx \
   --height 9 \
   --width 9 \
@@ -220,16 +226,22 @@ Default interpreter target:
 - Python `3.14`
 - Python `3.13` remains supported as an occasional secondary re-test path after major changes
 
+Activate the virtual environment once before running the commands below:
+
+```bash
+source .venv/bin/activate
+```
+
 Train a one-step model:
 
 ```bash
-.venv/bin/python scripts/train_one_step.py --output-dir runs/demo --height 6 --width 6 --epochs 100
+python scripts/train_one_step.py --output-dir runs/demo --height 6 --width 6 --epochs 100
 ```
 
 On a Linux machine with CUDA, the same PyTorch path can be invoked explicitly as:
 
 ```bash
-.venv/bin/python scripts/train_one_step.py --output-dir runs/demo-cuda --height 6 --width 6 --epochs 100 --device cuda
+python scripts/train_one_step.py --output-dir runs/demo-cuda --height 6 --width 6 --epochs 100 --device cuda
 ```
 
 Each training run now writes live progress into:
@@ -243,74 +255,74 @@ The CLI also prints one line per epoch with loss and throughput.
 Train a maze-aware model:
 
 ```bash
-.venv/bin/python scripts/train_one_step.py --task maze --output-dir runs/maze9 --height 9 --width 9 --num-mazes 32 --eval-num-mazes 8 --epochs 50
+python scripts/train_one_step.py --task maze --output-dir runs/maze9 --height 9 --width 9 --num-mazes 32 --eval-num-mazes 8 --epochs 50
 ```
 
 Train an exit-aware maze model:
 
 ```bash
-.venv/bin/python scripts/train_one_step.py --task maze_exit --output-dir runs/maze-exit9 --height 9 --width 9 --num-mazes 32 --eval-num-mazes 8 --epochs 50
+python scripts/train_one_step.py --task maze_exit --output-dir runs/maze-exit9 --height 9 --width 9 --num-mazes 32 --eval-num-mazes 8 --epochs 50
 ```
 
 Train the currently selected minimal exact model:
 
 ```bash
-.venv/bin/python scripts/train_mlx_one_step.py --task maze_exit --output-dir runs/mlx_h12_p3_u1 --height 9 --width 9 --num-mazes 64 --eval-num-mazes 8 --epochs 300 --batch-size 128 --hidden-channels 12 --perception-kernel-size 3 --update-kernel-size 1
+python scripts/train_mlx_one_step.py --task maze_exit --output-dir runs/mlx_h12_p3_u1 --height 9 --width 9 --num-mazes 64 --eval-num-mazes 8 --epochs 300 --batch-size 128 --hidden-channels 12 --perception-kernel-size 3 --update-kernel-size 1
 ```
 
 Train the stronger current reproducibility recipe for the selected minimal model:
 
 ```bash
-.venv/bin/python scripts/train_mlx_one_step.py --task maze_exit --output-dir runs/mlx_h12_p3_u1_strong --height 9 --width 9 --num-mazes 96 --eval-num-mazes 8 --epochs 500 --batch-size 128 --hidden-channels 12 --perception-kernel-size 3 --update-kernel-size 1
+python scripts/train_mlx_one_step.py --task maze_exit --output-dir runs/mlx_h12_p3_u1_strong --height 9 --width 9 --num-mazes 96 --eval-num-mazes 8 --epochs 500 --batch-size 128 --hidden-channels 12 --perception-kernel-size 3 --update-kernel-size 1
 ```
 
 Run the multi-seed MLX stability sweep used for the updated reproducibility study:
 
 ```bash
-.venv/bin/python scripts/sweep_mlx_seed_stability.py --output-dir runs/mlx-seed-stability-96m-500e --num-mazes 96 --epochs 500 --batch-size 128 --seeds 0,1,2,3,4,5,6,7 --rollout-num-sequences 32 --rollout-steps-per-sequence 100
+python scripts/sweep_mlx_seed_stability.py --output-dir runs/mlx-seed-stability-96m-500e --num-mazes 96 --epochs 500 --batch-size 128 --seeds 0,1,2,3,4,5,6,7 --rollout-num-sequences 32 --rollout-steps-per-sequence 100
 ```
 
 Train the older 32-channel MLX reference recipe:
 
 ```bash
-.venv/bin/python scripts/train_mlx_one_step.py --task maze_exit --output-dir runs/mlx_h32_p3_u1 --height 9 --width 9 --num-mazes 16 --eval-num-mazes 4 --epochs 150 --batch-size 64 --hidden-channels 32 --perception-kernel-size 3 --update-kernel-size 1
+python scripts/train_mlx_one_step.py --task maze_exit --output-dir runs/mlx_h32_p3_u1 --height 9 --width 9 --num-mazes 16 --eval-num-mazes 4 --epochs 150 --batch-size 64 --hidden-channels 32 --perception-kernel-size 3 --update-kernel-size 1
 ```
 
 Evaluate a checkpoint:
 
 ```bash
-.venv/bin/python scripts/evaluate_one_step.py --checkpoint runs/demo/checkpoint.pt
+python scripts/evaluate_one_step.py --checkpoint runs/demo/checkpoint.pt
 ```
 
 Evaluate long random rollouts:
 
 ```bash
-.venv/bin/python scripts/evaluate_rollout.py --checkpoint runs/demo/checkpoint.pt --num-sequences 256 --steps-per-sequence 1000
+python scripts/evaluate_rollout.py --checkpoint runs/demo/checkpoint.pt --num-sequences 256 --steps-per-sequence 1000
 ```
 
 Evaluate cross-grid rollout generalization on a different maze size:
 
 ```bash
-.venv/bin/python scripts/evaluate_generalization.py --checkpoint runs/maze-exit9/checkpoint.pt --height 30 --width 30 --num-sequences 64 --steps-per-sequence 200
+python scripts/evaluate_generalization.py --checkpoint runs/maze-exit9/checkpoint.pt --height 30 --width 30 --num-sequences 64 --steps-per-sequence 200
 ```
 
 Evaluate an MLX checkpoint:
 
 ```bash
-.venv/bin/python scripts/evaluate_mlx_one_step.py --checkpoint runs/mlx_h32_p3_u1/checkpoint_mlx
-.venv/bin/python scripts/evaluate_mlx_generalization.py --checkpoint runs/mlx_h32_p3_u1/checkpoint_mlx --height 30 --width 30 --num-sequences 16 --steps-per-sequence 50
+python scripts/evaluate_mlx_one_step.py --checkpoint runs/mlx_h32_p3_u1/checkpoint_mlx
+python scripts/evaluate_mlx_generalization.py --checkpoint runs/mlx_h32_p3_u1/checkpoint_mlx --height 30 --width 30 --num-sequences 16 --steps-per-sequence 50
 ```
 
 Infer one step from a chosen state/action:
 
 ```bash
-.venv/bin/python scripts/infer_one_step.py --checkpoint runs/demo/checkpoint.pt --height 6 --width 6 --row 0 --col 5 --action right
+python scripts/infer_one_step.py --checkpoint runs/demo/checkpoint.pt --height 6 --width 6 --row 0 --col 5 --action right
 ```
 
 Launch the interactive visual comparison app:
 
 ```bash
-.venv/bin/python scripts/interactive_compare.py --checkpoint runs/demo/checkpoint.pt --height 6 --width 6
+python scripts/interactive_compare.py --checkpoint runs/demo/checkpoint.pt --height 6 --width 6
 ```
 
 Then open `http://127.0.0.1:8000` in your browser. The visualizer advances on a fixed clock and applies `none` automatically when no keypress is queued. You can tune the clock with `--tick-ms`.
@@ -320,19 +332,19 @@ The visualizer supports both PyTorch `.pt` checkpoints and MLX `checkpoint_mlx` 
 For the maze checkpoint, the visualizer automatically uses the maze seed stored in the checkpoint config:
 
 ```bash
-.venv/bin/python scripts/interactive_compare.py --checkpoint runs/maze9/checkpoint.pt --height 9 --width 9 --port 8767
+python scripts/interactive_compare.py --checkpoint runs/maze9/checkpoint.pt --height 9 --width 9 --port 8767
 ```
 
 The same applies to exit-aware maze checkpoints. On reset, the browser app generates a fresh solvable maze:
 
 ```bash
-.venv/bin/python scripts/interactive_compare.py --checkpoint runs/maze-exit9/checkpoint.pt --height 9 --width 9 --port 8768
+python scripts/interactive_compare.py --checkpoint runs/maze-exit9/checkpoint.pt --height 9 --width 9 --port 8768
 ```
 
 For the currently selected minimal MLX model, use:
 
 ```bash
-.venv/bin/python scripts/interactive_compare.py --checkpoint runs/mlx-seed-stability-96m-500e/seed0/checkpoint_mlx --height 9 --width 9 --port 8768
+python scripts/interactive_compare.py --checkpoint runs/mlx-seed-stability-96m-500e/seed0/checkpoint_mlx --height 9 --width 9 --port 8768
 ```
 
 ## Planned Stack

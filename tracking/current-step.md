@@ -2,25 +2,26 @@
 
 ## Step ID
 
-44
+45
 
 ## Title
 
-README uv Sync Simplification
+Activated venv Python Invocation Policy
 
 ## Scope
 
-- remove the optional `UV_CACHE_DIR` override from the README quick-start command
-- keep the quick-start environment setup as simple as possible
-- document the default `uv` workflow rather than an implementation detail of earlier runs
+- verify that activating `.venv` and then using plain `python` works correctly on the local machine
+- update documentation to prefer `source .venv/bin/activate` followed by `python ...`
+- add a standing rule in `AGENTS.md` so future terminal commands follow the same convention
 
 ## Exit Criteria
 
-- the README quick-start setup uses plain `uv sync --python 3.14`
-- the quick-start command remains consistent with the current project target
+- local checks confirm that the activated-venv `python` path works for the relevant entrypoints
+- `README.md` prefers `source .venv/bin/activate` and `python ...` over hard-coded interpreter paths
+- `AGENTS.md` records the convention for future work
 - tracking is updated
 - local git commit is created
 
 ## Notes
 
-The remaining issue is not correctness but simplicity: the quick-start command still shows an unnecessary cache override. The README should prefer the default `uv` behavior unless there is a real project-level need for something more specific.
+The local environment already supports the cleaner workflow: activate `.venv` once, then run `python ...`. The documentation should reflect that, and the repository rules should preserve the same convention in future edits.

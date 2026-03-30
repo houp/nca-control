@@ -16,6 +16,7 @@ This repository hosts a stepwise research experiment for controllable Neural Cel
 - Environment management: `uv`
 - Primary interpreter target: Python `3.14`
 - Secondary interpreter re-test path after major changes: Python `3.13`
+- When invoking repository-local Python entrypoints from the terminal, activate `.venv` first via `source .venv/bin/activate` and then use `python ...` rather than hard-coding `.venv/bin/python`, unless there is a specific reason to bypass activation
 - ML framework targets: MLX on Apple Silicon and PyTorch for portable CPU, Apple Silicon MPS, and experimental Linux CUDA execution
 - First principle: lock down deterministic movement semantics before training any model
 
