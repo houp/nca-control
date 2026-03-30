@@ -1,0 +1,13 @@
+metric,value
+num_runs,8
+pass_count,8
+pass_fraction,1.0
+final_loss_mean,0.021729602582975717
+final_loss_stdev,0.0006641683656497677
+final_loss_median,0.021757841810956056
+min_loss_mean,0.02163395447370073
+min_loss_stdev,0.0006736170556077436
+best_seed,7
+best_final_loss,0.020559869939845075
+worst_seed,1
+worst_final_loss,0.022619425214130035

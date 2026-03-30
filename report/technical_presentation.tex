@@ -211,7 +211,7 @@ PyTorch also exposes an experimental CUDA path for Linux collaborators. This pat
 
 \vspace{0.4em}
 \begin{alertblock}{Current Verified Baseline}
-Selected minimal model: \texttt{12/3/1}
+Selected minimal model: \texttt{12/3/1}; stronger stability recipe: \(96\) mazes, \(500\) epochs
 \end{alertblock}
 \end{columns}
 \end{frame}
@@ -288,7 +288,7 @@ MLX & 40871.85 \\
 
 \column{0.40\textwidth}
 \scriptsize
-\begin{block}{Strong MLX Search Protocol}
+\begin{block}{Selection Protocol}
 \begin{itemize}
   \item task: \texttt{maze\_exit}
   \item grid: \(9\times 9\)
@@ -301,10 +301,9 @@ MLX & 40871.85 \\
 
 \begin{block}{Key Finding}
 \begin{itemize}
-  \item \(9/3/1\): not reproducible
-  \item \(10/3/1\): not exact
-  \item \(11/3/1\): not reproducible
+  \item boundary candidates \(9/3/1\), \(10/3/1\), and \(11/3/1\) all failed
   \item \(12/3/1\): smallest exact and reproducible model found
+  \item stronger follow-up: \(96\) mazes, \(500\) epochs, seeds \(0..7\)
 \end{itemize}
 \end{block}
 \end{columns}
@@ -313,16 +312,16 @@ MLX & 40871.85 \\
 \begin{frame}{Verification and Generalization}
 \begin{columns}[T,totalwidth=\textwidth]
 \column{0.58\textwidth}
-\begin{block}{Fresh Post-Maintenance Checks}
-\small
+\begin{block}{Stronger Stability Sweep}
+\scriptsize
 \begin{tabular}{@{}lcc@{}}
 \toprule
 Evaluation & Setting & Result \\
 \midrule
-One-step & \(9\times 9\) & \(1.0\) \\
-Rollout & \(50\times 50\) & \(1.0\) \\
-Rollout & \(100\times 100\) & \(1.0\) \\
-Rollout & \(200\times 200\) & \(1.0\) \\
+One-step exact & 8 seeds & \(1.0\) \\
+Rollout exact & \(30,50\); 8 seeds & \(1.0\) \\
+Seed \(4\) large-grid & \(100,200\) & \(1.0\) \\
+Seed \(1\) large-grid & \(100,200\) & \(1.0\) \\
 \bottomrule
 \end{tabular}
 \end{block}
@@ -338,30 +337,32 @@ Rollout & \(200\times 200\) & \(1.0\) \\
 \column{0.38\textwidth}
 \begin{alertblock}{Large-Grid Result}
 \small
-The selected model remained exact on recorded rollout checks up to \(200\times 200\).
+Exact rollout checks remained valid up to \(200\times 200\), including seed \(4\).
 \end{alertblock}
 \end{columns}
 \end{frame}
 
-\begin{frame}{Reproducibility Limits}
+\begin{frame}{Seed Stability Revisit}
 \begin{columns}[T,totalwidth=\textwidth]
 \column{0.48\textwidth}
 \small
-\begin{block}{What Is Verified}
+\begin{block}{Aggregate Result}
 \begin{itemize}
-  \item \(12/3/1\) was exact on reproducibility seeds \(0,1,2,3\)
-  \item a fresh post-maintenance seed-\(0\) rerun stayed exact
-  \item the same checkpoint generalized to \(50\times 50\), \(100\times 100\), and \(200\times 200\)
+  \item stronger recipe: \(96\) mazes, \(500\) epochs
+  \item seeds tested: \(0,1,\dots,7\)
+  \item exact pass fraction: \(8/8 = 1.0\)
+  \item final loss mean \(\pm\) std: \(0.021730 \pm 0.000664\)
+  \item best / worst final loss: \(0.020560\) / \(0.022619\)
 \end{itemize}
 \end{block}
 
 \column{0.48\textwidth}
 \small
-\begin{alertblock}{What Is Not Claimed}
+\begin{alertblock}{Interpretation}
 \begin{itemize}
-  \item the model is not presented as universally seed-invariant
-  \item an exploratory fresh seed-\(4\) MLX run plateaued at higher loss
-  \item reproducibility should therefore be described as strong on the tested seed set
+  \item the old seed-\(4\) failure is not reproduced under the stronger recipe
+  \item the minimal model now looks robust on the tested seed range
+  \item the claim is still empirical, not a proof for all future seeds
 \end{itemize}
 \end{alertblock}
 \end{columns}
@@ -373,7 +374,7 @@ The selected model remained exact on recorded rollout checks up to \(200\times 2
   \item controllable NCA-style local rules can emulate exact maze navigation with walls, periodic boundaries, terminal lockout, and autonomous fill dynamics
   \item the project now includes deterministic reference dynamics, automated verification, interactive visualization, and dual PyTorch/MLX backends
   \item MLX is the preferred Apple Silicon backend for this workload
-  \item the current smallest exact and reproducible architecture is \(12/3/1\)
+  \item the current smallest exact architecture is \(12/3/1\), and it was exact on all eight tested retrains under the stronger recipe
 \end{itemize}
 \end{block}
 

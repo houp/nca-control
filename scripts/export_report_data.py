@@ -13,7 +13,7 @@ def main() -> None:
     REPORT_DATA_DIR.mkdir(parents=True, exist_ok=True)
     export_backend_benchmark()
     export_minimal_candidates()
-    export_loss_curves()
+    export_seed_stability()
 
 
 def export_backend_benchmark() -> None:
@@ -74,28 +74,81 @@ def export_minimal_candidates() -> None:
     )
 
 
-def export_loss_curves() -> None:
-    runs = {
-        "seed0_rerun": ROOT / "runs" / "final_h12_p3_u1_seed0_rerun" / "progress.jsonl",
-        "seed4_exploratory": ROOT / "runs" / "final_h12_p3_u1_seed4" / "progress.jsonl",
-    }
-    rows: list[tuple[object, ...]] = []
-    for run_label, progress_path in runs.items():
+def export_seed_stability() -> None:
+    summary_path = ROOT / "runs" / "mlx-seed-stability-96m-500e" / "summary.json"
+    payload = json.loads(summary_path.read_text(encoding="utf-8"))
+    aggregate = payload["aggregate"]
+    seed_runs = payload["seed_runs"]
+
+    write_csv(
+        REPORT_DATA_DIR / "seed_stability_summary.csv",
+        ["metric", "value"],
+        [
+            ("num_runs", aggregate["num_runs"]),
+            ("pass_count", aggregate["pass_count"]),
+            ("pass_fraction", aggregate["pass_fraction"]),
+            ("final_loss_mean", aggregate["final_loss"]["mean"]),
+            ("final_loss_stdev", aggregate["final_loss"]["stdev"]),
+            ("final_loss_median", aggregate["final_loss"]["median"]),
+            ("min_loss_mean", aggregate["min_loss"]["mean"]),
+            ("min_loss_stdev", aggregate["min_loss"]["stdev"]),
+            ("best_seed", aggregate["best_seed"]),
+            ("best_final_loss", aggregate["best_final_loss"]),
+            ("worst_seed", aggregate["worst_seed"]),
+            ("worst_final_loss", aggregate["worst_final_loss"]),
+        ],
+    )
+
+    write_csv(
+        REPORT_DATA_DIR / "seed_stability_runs.csv",
+        [
+            "seed",
+            "passed",
+            "final_loss",
+            "min_loss",
+            "one_step_full_state_accuracy",
+            "termination_accuracy",
+            "rollout_30",
+            "rollout_50",
+        ],
+        [
+            (
+                int(run["seed"]),
+                1 if bool(run["passed"]) else 0,
+                float(run["final_loss"]),
+                float(run["min_loss"]),
+                float(run["one_step"]["full_state_accuracy"]),
+                float(run["one_step"]["termination_accuracy"]),
+                float(run["rollout_30"]["exact_rollout_rate"]),
+                float(run["rollout_50"]["exact_rollout_rate"]),
+            )
+            for run in seed_runs
+        ],
+    )
+
+    loss_rows: list[tuple[object, ...]] = []
+    for run in seed_runs:
+        progress_path = Path(run["progress_path"])
         run_rows: list[tuple[object, ...]] = []
         for line in progress_path.read_text(encoding="utf-8").splitlines():
             record = json.loads(line)
-            row = (run_label, int(record["epoch"]), float(record["loss"]))
-            rows.append(row)
-            run_rows.append(row[1:])
+            row = (
+                int(run["seed"]),
+                1 if bool(run["passed"]) else 0,
+                int(record["epoch"]),
+                float(record["loss"]),
+            )
+            loss_rows.append(row)
+            run_rows.append(row[2:])
         write_csv(
-            REPORT_DATA_DIR / f"loss_{run_label}.csv",
+            REPORT_DATA_DIR / f"seed_stability_loss_seed{int(run['seed'])}.csv",
             ["epoch", "loss"],
             run_rows,
         )
     write_csv(
-        REPORT_DATA_DIR / "loss_curves.csv",
-        ["run", "epoch", "loss"],
-        rows,
+        REPORT_DATA_DIR / "seed_stability_loss_curves.csv",
+        ["seed", "passed", "epoch", "loss"],
+        loss_rows,
     )
 
 

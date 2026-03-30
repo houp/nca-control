@@ -143,6 +143,13 @@ Step 34 now establishes:
 
 The slide source is in `report/technical_presentation.tex`.
 
+Step 38 now establishes:
+
+- a dedicated MLX seed-stability sweep for the selected `12/3/1` model
+- a stronger reproducibility result under `96` mazes and `500` epochs across seeds `0..7`
+- exact `30x30` and `50x50` rollout behavior on all `8/8` tested seeds
+- follow-up `100x100` and `200x200` rollout checks on the formerly suspicious seed `4` and the worst-loss seed `1`
+
 ## Experimental CUDA Path
 
 PyTorch now has an experimental CUDA-enabled code path for collaborators running the project on Linux with NVIDIA GPUs. In practical terms, the existing PyTorch training and evaluation entrypoints can be used with `--device cuda`, and `--device auto` will prefer CUDA when it is available.
@@ -187,6 +194,18 @@ Train the currently selected minimal exact model:
 
 ```bash
 .venv/bin/python scripts/train_mlx_one_step.py --task maze_exit --output-dir runs/mlx_h12_p3_u1 --height 9 --width 9 --num-mazes 64 --eval-num-mazes 8 --epochs 300 --batch-size 128 --hidden-channels 12 --perception-kernel-size 3 --update-kernel-size 1
+```
+
+Train the stronger current reproducibility recipe for the selected minimal model:
+
+```bash
+.venv/bin/python scripts/train_mlx_one_step.py --task maze_exit --output-dir runs/mlx_h12_p3_u1_strong --height 9 --width 9 --num-mazes 96 --eval-num-mazes 8 --epochs 500 --batch-size 128 --hidden-channels 12 --perception-kernel-size 3 --update-kernel-size 1
+```
+
+Run the multi-seed MLX stability sweep used for the updated reproducibility study:
+
+```bash
+.venv/bin/python scripts/sweep_mlx_seed_stability.py --output-dir runs/mlx-seed-stability-96m-500e --num-mazes 96 --epochs 500 --batch-size 128 --seeds 0,1,2,3,4,5,6,7 --rollout-num-sequences 32 --rollout-steps-per-sequence 100
 ```
 
 Train the older 32-channel MLX reference recipe:

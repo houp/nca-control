@@ -2,7 +2,7 @@
 
 ## Step ID
 
-38
+39
 
 ## Title
 
@@ -24,6 +24,6 @@ Patch-Local Training Prototype
 
 ## Notes
 
-Step 37 added an experimental PyTorch CUDA code path for Linux collaborators and updated the main project documents to mark it as untested on the current macOS host.
+Step 38 strengthened the reproducibility evidence for the selected `12/3/1` MLX model: the stronger `96`-maze, `500`-epoch recipe passed on seeds `0..7`, and the formerly suspicious seed `4` remained exact on `100x100` and `200x200` rollout checks.
 
 The next deferred research question is whether patch-local supervision can retain the current guarantees while reducing training cost further.
